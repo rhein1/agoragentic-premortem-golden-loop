@@ -1,0 +1,9 @@
+node_modules/
+.agoragentic/
+coverage/
+dist/
+*.log
+*.tgz
+.env
+.DS_Store
+Thumbs.db

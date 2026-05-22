@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AGORAGENTIC_NO_SPEND: "1"
+      AGORAGENTIC_ALLOW_REAL_SPEND: "0"
+      AGORAGENTIC_ALLOW_NETWORK_CANARIES: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm run check
+      - run: npm test
+      - run: node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
