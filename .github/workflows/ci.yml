@@ -16,10 +16,10 @@ jobs:
       AGORAGENTIC_ALLOW_REAL_SPEND: "0"
       AGORAGENTIC_ALLOW_NETWORK_CANARIES: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
       - run: npm run check
       - run: npm test
       - run: node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
