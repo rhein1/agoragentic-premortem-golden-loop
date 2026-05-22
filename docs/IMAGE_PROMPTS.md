@@ -4,6 +4,17 @@ Use these prompts for GitHub social preview, README hero, and documentation imag
 
 Keep all text out of the generated image unless the tool renders typography reliably; add labels in the README instead.
 
+## Acceptance Gate
+
+Reject and regenerate any asset that fails one of these checks:
+
+- `assets/social-card.png` must be wide, ideally 1280x640 or another 2:1 GitHub-social-safe ratio. Do not accept a square social card.
+- `assets/readme-hero.png` must be wide, ideally 1600x900 or wider. Do not accept a square README hero.
+- `assets/workflow-diagram.png` can be square or landscape, but all labels must be intentionally readable or removed. Do not accept stray generated text.
+- `assets/icon.png` should be square and readable at small sizes.
+- No generated image should contain hallucinated labels, malformed words, fake code, fake brand text, fake path strings, or invented logos.
+- If the model cannot reliably render text, request abstract UI blocks only and overlay real labels later in Markdown, SVG, Figma, or CSS.
+
 ## Brand Rules For Every Prompt
 
 - Palette: page background `#0C1222`; panels `#111A2E`, `#131D30`, `#162038`; code/input `#0A1019`, `#0E1628`; primary coral `#E8613A`; coral hover/highlight `#F07A58`; cyan signal `#06B6D4`; success `#22C55E`; warning `#F59E0B`; text `#E2E8F0`, `#94A3B8`, `#64748B`; borders `#263044`, `#3B465C`.
@@ -16,9 +27,9 @@ Keep all text out of the generated image unless the tool renders typography reli
 ## GitHub Social Preview
 
 ```text
-Create a 1280x640 GitHub social preview image for "Agoragentic Premortem Golden Loop Agent". Visual style: Agoragentic infrastructure control surface, compact and commercially serious, not a generic AI illustration. Use the Agoragentic palette exactly: #0C1222 background, #111A2E/#131D30/#162038 panels, #E8613A coral primary accents, #F07A58 highlight, #06B6D4 cyan signal, #22C55E success, #F59E0B warning, #E2E8F0 and #94A3B8 UI text blocks.
+Create a 1280x640 GitHub social preview image for "Agoragentic Premortem Golden Loop Agent". The final canvas must be 2:1 landscape, not square. Visual style: Agoragentic infrastructure control surface, compact and commercially serious, not a generic AI illustration. Use the Agoragentic palette exactly: #0C1222 background, #111A2E/#131D30/#162038 panels, #E8613A coral primary accents, #F07A58 highlight, #06B6D4 cyan signal, #22C55E success, #F59E0B warning, #E2E8F0 and #94A3B8 UI text blocks.
 
-Scene: a restrained dark control desk with three local artifacts visible as abstract UI panels: a premortem report, a Golden Loop local receipt, and a self-heal plan. Show a tight clockwise loop of status nodes for Premortem, Self-Test, and Self-Heal using coral, cyan, green, and amber status lighting. Include terminal/code surfaces with JetBrains-Mono-like metadata blocks, but avoid readable fake text. Leave clean negative space on the left for the real Agoragentic wordmark to be overlaid later.
+Scene: a restrained dark control desk with three local artifacts visible as abstract UI panels: a premortem report, a Golden Loop local receipt, and a self-heal plan. Show a tight clockwise loop of status nodes using coral, cyan, green, and amber status lighting. Do not render any readable text, words, letters, code, file paths, or brand name inside the image. Use abstract bars, dots, and blocks only. Leave clean negative space on the left for the real Agoragentic wordmark to be overlaid later.
 
 Must communicate: free local-first OSS, no data sent anywhere by default, proof receipts, owner approval gates. Do not show people, robots, mascots, coins, blockchain visuals, decorative blobs, generic purple gradients, or invented logos.
 ```
@@ -26,9 +37,9 @@ Must communicate: free local-first OSS, no data sent anywhere by default, proof 
 ## README Hero Image
 
 ```text
-Create a wide README hero image for an Agoragentic local-first CLI. Use a serious Triptych OS (Agent OS) control-surface look: deep navy background #0C1222, layered panels #111A2E/#131D30/#162038, coral action accents #E8613A, cyan signal #06B6D4, success #22C55E, warning #F59E0B, muted text blocks #94A3B8.
+Create a wide README hero image for an Agoragentic local-first CLI. The final canvas must be landscape, ideally 1600x900 or wider, not square. Use a serious Triptych OS (Agent OS) control-surface look: deep navy background #0C1222, layered panels #111A2E/#131D30/#162038, coral action accents #E8613A, cyan signal #06B6D4, success #22C55E, warning #F59E0B, muted text blocks #94A3B8.
 
-Scene: a clean developer workstation with a terminal, a dark premortem HTML report, local JSON receipts, and a folder path represented visually as ".agoragentic/premortem-golden-loop/" using JetBrains-Mono-like code styling. The key metaphor is a closed local boundary: source files enter a local review loop, then report/receipt/self-heal artifacts come out. Show the boundary with a restrained thin-line enclosure and subtle panel contrast, not with a flashy wall or shield.
+Scene: a clean developer workstation with a terminal, a dark premortem HTML report, local JSON receipts, and a local artifact folder represented visually. Do not render literal words, code, file paths, labels, numbers, or brand text. Use abstract JetBrains-Mono-like rows and metadata blocks only. The key metaphor is a closed local boundary: source files enter a local review loop, then report/receipt/self-heal artifacts come out. Show the boundary with a restrained thin-line enclosure and subtle panel contrast, not with a flashy wall or shield.
 
 The design should feel like real infrastructure: budgets, receipts, policies, runtime checks, audit trail, and owner approval. Use tight 8px-12px panel radii, thin borders, and subtle shadows. No invented logo, no random protocol badges, no stock-photo laptop scene, no robots, no coins, no purple/blue gradient hero, no decorative floating shapes.
 ```
