@@ -5,10 +5,10 @@
   "type": "module",
   "license": "MIT",
   "bin": {
-    "agoragentic-premortem-golden-loop": "./bin/agoragentic-premortem-golden-loop.mjs",
-    "agoragentic-premortem-golden-loop-mcp": "./bin/agoragentic-premortem-golden-loop-mcp.mjs",
-    "agoragentic-premortem": "./bin/agoragentic-premortem-golden-loop.mjs",
-    "agoragentic-golden-loop": "./bin/agoragentic-premortem-golden-loop.mjs"
+    "agoragentic-premortem-golden-loop": "bin/agoragentic-premortem-golden-loop.mjs",
+    "agoragentic-premortem-golden-loop-mcp": "bin/agoragentic-premortem-golden-loop-mcp.mjs",
+    "agoragentic-premortem": "bin/agoragentic-premortem-golden-loop.mjs",
+    "agoragentic-golden-loop": "bin/agoragentic-premortem-golden-loop.mjs"
   },
   "files": [
     "assets/",
