@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a new local-first audit, premortem, self-heal, or integration capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What should the agent do differently?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Premortem analysis
+        - Golden Loop readiness
+        - Local receipts
+        - Additive self-heal
+        - MCP
+        - Docker
+        - IDE templates
+        - Documentation
+        - Other
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Boundary fit
+      options:
+        - label: This can preserve local-first behavior by default.
+          required: true
+        - label: This does not require deleting code, overwriting user files, deploying, spending money, or sending repo contents anywhere by default.
+          required: true
