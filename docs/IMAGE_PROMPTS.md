@@ -4,6 +4,8 @@ Use these prompts for GitHub social preview, README hero, and documentation imag
 
 Keep all text out of the generated image unless the tool renders typography reliably; add labels in the README instead.
 
+Some image generators ignore requested dimensions and return a square canvas. If the visual content passes the no-text and brand gates, crop and resize the final asset to the required aspect ratio instead of accepting a square social card or README hero.
+
 ## Acceptance Gate
 
 Reject and regenerate any asset that fails one of these checks:
@@ -37,21 +39,25 @@ Must communicate: free local-first OSS, no data sent anywhere by default, proof 
 ## README Hero Image
 
 ```text
-Create a wide README hero image for an Agoragentic local-first CLI. The final canvas must be landscape, ideally 1600x900 or wider, not square. Use a serious Triptych OS (Agent OS) control-surface look: deep navy background #0C1222, layered panels #111A2E/#131D30/#162038, coral action accents #E8613A, cyan signal #06B6D4, success #22C55E, warning #F59E0B, muted text blocks #94A3B8.
+Create a wide landscape image showing an abstract developer infrastructure control surface. Deep navy background #0C1222, layered darker panels #111A2E/#131D30/#162038, coral accents #E8613A, cyan lines #06B6D4, green dots #22C55E, amber dots #F59E0B.
 
-Scene: a clean developer workstation with a terminal, a dark premortem HTML report, local JSON receipts, and a local artifact folder represented visually. Do not render literal words, code, file paths, labels, numbers, or brand text. Use abstract JetBrains-Mono-like rows and metadata blocks only. The key metaphor is a closed local boundary: source files enter a local review loop, then report/receipt/self-heal artifacts come out. Show the boundary with a restrained thin-line enclosure and subtle panel contrast, not with a flashy wall or shield.
+CRITICAL: Do NOT include any text, words, letters, numbers, labels, code, JSON, file paths, hex codes, or any readable characters anywhere in the image. Zero text. None.
 
-The design should feel like real infrastructure: budgets, receipts, policies, runtime checks, audit trail, and owner approval. Use tight 8px-12px panel radii, thin borders, and subtle shadows. No invented logo, no random protocol badges, no stock-photo laptop scene, no robots, no coins, no purple/blue gradient hero, no decorative floating shapes.
+Show three abstract dark panels with colored bars and dots arranged in rows, representing abstract data. A thin cyan line boundary encloses the panels on the right side, with abstract document icons and folder shapes on the far right as output. On the left, show abstract file shapes entering the boundary. A central panel resembles a terminal with horizontal gray bars of varying lengths and small colored dots as status indicators. Use tight 8px-12px panel radii, thin #263044 borders, subtle shadows. The composition should be wider than it is tall, designed to be cropped to 16:9.
+
+No people, robots, mascots, logos, shields, coins, or decorative shapes. Pure infrastructure aesthetic.
 ```
 
 ## Workflow Diagram Image
 
 ```text
-Create an isometric Agoragentic workflow diagram for an OSS agent release safety loop. Use the brand palette: #0C1222 base, #111A2E/#131D30/#162038 panels, #E8613A coral primary path, #06B6D4 secondary signal, #22C55E pass, #F59E0B warning, #263044 borders, #E2E8F0 text-like UI blocks.
+Create an isometric diagram of five abstract workstations arranged in a clockwise pentagon inside a dark boundary. Background #0C1222. The boundary platform uses #131D30/#162038 surfaces.
 
-Show five compact stations connected clockwise inside a local machine boundary: Plan Premortem, Repo Audit, Golden Loop Receipt, Self-Heal Plan, Owner Review. Represent station labels as abstract UI blocks rather than readable generated text. The optional public no-spend canary path should be a thin dotted cyan line to a small external status beacon, visually separate from the local boundary and clearly lower emphasis than the local loop.
+CRITICAL: Do NOT include any text, words, letters, numbers, labels, hex codes, legends, or any readable characters anywhere in the image. Zero text. None. No color legend, no station names, no annotations.
 
-Make it feel like Agent OS proof infrastructure: receipts, policies, budgets, and audit trail. Use precise linework, tight radii, subtle depth, and dense but readable layout. Do not use cartoon characters, mascots, coins, decorative blobs, dramatic explosions, cyberpunk effects, or generic SaaS gradients.
+Each workstation is a small isometric desk with abstract colored indicators: station 1 has coral #E8613A elements, station 2 has cyan #06B6D4, station 3 has green #22C55E, station 4 has amber #F59E0B, station 5 has coral again. Connect them with a coral primary path line clockwise. A thin dotted cyan line exits the boundary to a small external beacon shape in the bottom-right corner.
+
+Use precise clean linework, tight radii, subtle depth/shadows, isometric 3D perspective. The boundary should feel like a local machine enclosure. No cartoon characters, mascots, coins, decorative blobs, explosions, gradients, or readable annotations.
 ```
 
 ## Icon Prompt

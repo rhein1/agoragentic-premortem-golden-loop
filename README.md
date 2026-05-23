@@ -1,5 +1,7 @@
 # Agoragentic Premortem Golden Loop Agent
 
+![Agoragentic Premortem Golden Loop Agent](./assets/readme-hero.png)
+
 OSS premortem agent for plans, launches, products, hires, strategies, and installable AI agent repositories. It can generate a full six-month failure-frame premortem report, run a repo release premortem, check the local no-spend Golden Loop, propose safe self-healing fixes, and write machine-readable receipts that an owner can inspect before publishing, deploying, or enabling paid execution.
 
 This package is local-first by default:
@@ -85,6 +87,8 @@ Artifacts are written to:
 
 ## Workflow For Users
 
+![Premortem Golden Loop workflow](./assets/workflow-diagram.png)
+
 1. Run `session` on the business plan, launch, product, hire, or strategy so the agent can expose how it could fail.
 2. Run `run --repo .` on the installable repo to audit the Golden Loop readiness path locally.
 3. Run `heal --repo .` to see the safe self-healing plan without changing files.
@@ -169,4 +173,11 @@ Do not hardcode provider IDs unless the agent intentionally needs a specific pro
 
 ## Repository Images
 
-Use [`docs/IMAGE_PROMPTS.md`](./docs/IMAGE_PROMPTS.md) to generate the GitHub social preview, README hero, and workflow diagram images. Keep generated images consistent with the repo promise: local-first, free, no data sent anywhere by default, and explicit owner approval before any paid or networked path.
+Generated brand assets live in [`assets/`](./assets/):
+
+- [`assets/social-card.png`](./assets/social-card.png) for the GitHub social preview
+- [`assets/readme-hero.png`](./assets/readme-hero.png) for the README hero
+- [`assets/workflow-diagram.png`](./assets/workflow-diagram.png) for the workflow section
+- [`assets/icon.png`](./assets/icon.png) for package, profile, or marketplace surfaces
+
+Use [`docs/IMAGE_PROMPTS.md`](./docs/IMAGE_PROMPTS.md) to regenerate them. Keep generated images consistent with the repo promise: local-first, free, no data sent anywhere by default, and explicit owner approval before any paid or networked path.

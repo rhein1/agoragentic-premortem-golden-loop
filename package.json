@@ -10,6 +10,7 @@
     "agoragentic-golden-loop": "./bin/agoragentic-premortem-golden-loop.mjs"
   },
   "files": [
+    "assets/",
     "bin/",
     "src/",
     "docs/",
