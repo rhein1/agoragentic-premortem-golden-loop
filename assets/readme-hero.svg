@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.26"/>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#263044" stroke-width="1" opacity="0.35"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="#0C1222"/>
+  <rect width="1600" height="900" fill="url(#grid)" opacity="0.32"/>
+  
+    <rect x="70" y="64" width="1460" height="772" rx="18" fill="#162038" stroke="#263044" stroke-width="2"/>
+    <text x="110" y="118" fill="#06B6D4" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="18" font-weight="800" letter-spacing="0" >LOCAL-FIRST AGENT READINESS</text>
+    <text x="110" y="188" fill="#E2E8F0" font-family="Space Grotesk, Inter, Segoe UI, sans-serif" font-size="54" font-weight="800" letter-spacing="0" >Premortem + Golden Loop in one audit</text>
+    <text x="112" y="236" fill="#94A3B8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="500" letter-spacing="0" >For installable AI agent repos: expose launch failure modes, prove no-spend readiness, and hand fixes to a local IDE agent.</text>
+
+    <g filter="url(#shadow)">
+    <rect x="110" y="294" width="640" height="234" rx="10" fill="#111A2E" stroke="#263044" stroke-width="2"/>
+    <rect x="110" y="294" width="640" height="6" rx="3" fill="#E8613A"/>
+    <text x="132" y="336" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="0" >Run locally</text>
+  </g>
+    <text x="142" y="366" fill="#E2E8F0" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="21" font-weight="500" letter-spacing="0" >$ npx agoragentic-premortem-golden-loop doctor --repo .</text>
+    <text x="142" y="410" fill="#E2E8F0" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="21" font-weight="500" letter-spacing="0" >$ npx agoragentic-premortem-golden-loop audit --repo .</text>
+    <rect x="142" y="450" width="236" height="34" rx="7" fill="#0A1019" stroke="#263044"/>
+    <text x="162" y="473" fill="#22C55E" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="15" font-weight="700" letter-spacing="0" >no network by default</text>
+    <rect x="394" y="450" width="172" height="34" rx="7" fill="#0A1019" stroke="#263044"/>
+    <text x="414" y="473" fill="#06B6D4" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="15" font-weight="700" letter-spacing="0" >no API key</text>
+    <rect x="582" y="450" width="126" height="34" rx="7" fill="#0A1019" stroke="#263044"/>
+    <text x="602" y="473" fill="#F59E0B" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="15" font-weight="700" letter-spacing="0" >no wallet</text>
+
+    <rect x="812" y="294" width="638" height="390" rx="14" fill="#0C1222" stroke="#06B6D4" stroke-width="2"/>
+    <text x="846" y="340" fill="#06B6D4" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="17" font-weight="800" letter-spacing="0" >LOCAL MACHINE BOUNDARY</text>
+    <g>
+    <rect x="846" y="378" width="196" height="86" rx="9" fill="#131D30" stroke="#263044" stroke-width="1.5"/>
+    <circle cx="874" cy="408" r="9" fill="#E8613A"/>
+    <text x="894" y="412" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" letter-spacing="0" >Premortem HTML</text>
+    <text x="866" y="442" fill="#94A3B8" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="13" font-weight="500" letter-spacing="0" >failure-frame report</text>
+  </g>
+    <g>
+    <rect x="1082" y="378" width="196" height="86" rx="9" fill="#131D30" stroke="#263044" stroke-width="1.5"/>
+    <circle cx="1110" cy="408" r="9" fill="#22C55E"/>
+    <text x="1130" y="412" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" letter-spacing="0" >Golden Loop</text>
+    <text x="1102" y="442" fill="#94A3B8" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="13" font-weight="500" letter-spacing="0" >readiness receipt</text>
+  </g>
+    <g>
+    <rect x="846" y="512" width="196" height="86" rx="9" fill="#131D30" stroke="#263044" stroke-width="1.5"/>
+    <circle cx="874" cy="542" r="9" fill="#F59E0B"/>
+    <text x="894" y="546" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" letter-spacing="0" >Self-Heal Plan</text>
+    <text x="866" y="576" fill="#94A3B8" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="13" font-weight="500" letter-spacing="0" >additive only</text>
+  </g>
+    <g>
+    <rect x="1082" y="512" width="196" height="86" rx="9" fill="#131D30" stroke="#263044" stroke-width="1.5"/>
+    <circle cx="1110" cy="542" r="9" fill="#06B6D4"/>
+    <text x="1130" y="546" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" letter-spacing="0" >IDE Handoff</text>
+    <text x="1102" y="576" fill="#94A3B8" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="13" font-weight="500" letter-spacing="0" >reviewed patch</text>
+  </g>
+    <path d="M 1042 421 L 1082 421" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 1073 414 L 1082 421 L 1073 428" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 1180 464 L 1180 512" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 1189 505 L 1180 512 L 1189 519" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 1082 555 L 1042 555" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 1051 548 L 1042 555 L 1051 562" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 944 512 L 944 464" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 953 457 L 944 464 L 953 471" stroke="#E8613A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="110" y="580" width="640" height="104" rx="12" fill="#111A2E" stroke="#263044" stroke-width="1.5"/>
+    <text x="142" y="626" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="0" >Outputs you can inspect</text>
+    <text x="142" y="662" fill="#94A3B8" font-family="JetBrains Mono, Consolas, Menlo, monospace" font-size="18" font-weight="500" letter-spacing="0" >audit-guide.html  local-receipt.json  ide-fix-prompt.md</text>
+
+    <rect x="110" y="724" width="1340" height="64" rx="12" fill="#0A1019" stroke="#3B465C" stroke-width="1.5"/>
+    <circle cx="144" cy="756" r="8" fill="#22C55E"/>
+    <text x="166" y="764" fill="#E2E8F0" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="0" >Self-heal creates missing scaffolds only after --apply-safe-fixes. It never deletes, overwrites, deploys, publishes, or spends.</text>
+  
+</svg>

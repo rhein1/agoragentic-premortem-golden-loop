@@ -14,6 +14,7 @@
     "assets/",
     "bin/",
     "src/",
+    "scripts/",
     "docs/",
     "templates/",
     "examples/",
@@ -25,6 +26,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "assets:generate": "node scripts/generate-brand-assets.mjs",
     "test": "node --test test/*.test.mjs",
     "check": "node --check bin/agoragentic-premortem-golden-loop.mjs && node --check bin/agoragentic-premortem-golden-loop-mcp.mjs && node --check src/core.mjs"
   },

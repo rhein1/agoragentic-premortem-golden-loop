@@ -1,4 +1,19 @@
-# Image Generation Prompts
+# Image Assets And Prompts
+
+The committed repo images are deterministic SVG/PNG control-surface graphics, not AI-generated raster art. Regenerate the SVG sources with:
+
+```bash
+npm run assets:generate
+```
+
+The PNG files are exports of those SVG sources:
+
+- `assets/social-card.svg` -> `assets/social-card.png`
+- `assets/readme-hero.svg` -> `assets/readme-hero.png`
+- `assets/workflow-diagram.svg` -> `assets/workflow-diagram.png`
+- `assets/icon.svg` -> `assets/icon.png`
+
+Use the prompts below only for optional new raster variants.
 
 Use these prompts for GitHub social preview, README hero, and documentation images. They follow the Agoragentic brand contract from `DESIGN.md`: serious infrastructure, compact control surfaces, Triptych OS (Agent OS) proof language, deep navy surfaces, warm coral actions, cyan/support status accents, and local proof artifacts.
 

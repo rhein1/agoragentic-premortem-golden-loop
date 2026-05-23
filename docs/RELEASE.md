@@ -8,6 +8,7 @@ Run from the repository root:
 
 ```bash
 npm run check
+npm run assets:generate
 npm test
 node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
 node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
