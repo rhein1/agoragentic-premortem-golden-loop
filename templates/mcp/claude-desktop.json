@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "agoragentic-premortem-golden-loop": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "--package",
+        "agoragentic-premortem-golden-loop",
+        "agoragentic-premortem-golden-loop-mcp"
+      ]
+    }
+  }
+}

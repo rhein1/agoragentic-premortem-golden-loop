@@ -32,6 +32,8 @@ npx agoragentic-premortem-golden-loop audit --repo .
 npx agoragentic-premortem-golden-loop run --repo .
 ```
 
+Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, and a dependency-free MCP stdio server.
+
 ## Commands
 
 ```bash
@@ -134,6 +136,16 @@ Artifacts are written to:
 - IDE handoff: prompts another local agent can use to fix Golden Loop readiness without destructive changes
 
 By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it may create missing scaffold files, but it still will not delete files, overwrite existing files, edit application source code, install dependencies, deploy, publish, call paid `execute()`, sign wallets, or transfer funds.
+
+## Integrations
+
+- CLI: `npx agoragentic-premortem-golden-loop audit --repo .`
+- MCP: `npx --yes --package agoragentic-premortem-golden-loop agoragentic-premortem-golden-loop-mcp`
+- GitHub Actions: copy [`templates/github-actions/agoragentic-premortem-golden-loop.yml`](./templates/github-actions/agoragentic-premortem-golden-loop.yml)
+- Docker/home server: use [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml), or [`templates/systemd/`](./templates/systemd/)
+- IDE agents: copy the relevant template from [`templates/`](./templates/) for Cursor, Claude Code, Codex, Cline, Windsurf, or Antigravity
+
+See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) for exact setup steps.
 
 ## Premortem Session Workflow
 

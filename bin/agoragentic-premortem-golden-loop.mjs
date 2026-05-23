@@ -5,12 +5,9 @@ import {
   DEFAULT_BASE_URL,
   DEFAULT_OUTPUT_DIR,
   premortemSessionFileNames,
-  renderAuditGuideHtml,
-  renderAuditSummaryMarkdown,
   renderDoctorMarkdown,
   renderGoldenLoopMarkdown,
   renderHealingPlanMarkdown,
-  renderIdeFixPrompt,
   renderPremortemMarkdown,
   renderPremortemSessionHtml,
   renderPremortemSessionSummary,
@@ -23,6 +20,7 @@ import {
   runHeal,
   runPremortem,
   runPremortemSession,
+  writeAuditArtifacts,
   writeJson,
   writeText
 } from '../src/core.mjs';
@@ -99,43 +97,16 @@ async function main(argv) {
 
   if (command === 'audit') {
     const audit = await runAudit(options);
-    const guidePath = path.join(outDir, 'audit-guide.html');
-    await writeJson(path.join(outDir, 'audit.json'), audit);
-    await writeText(path.join(outDir, 'audit-summary.md'), renderAuditSummaryMarkdown(audit));
-    await writeText(guidePath, renderAuditGuideHtml(audit));
-    await writeText(path.join(outDir, 'ide-fix-prompt.md'), renderIdeFixPrompt(audit, 'local IDE agent'));
-    await writeText(path.join(outDir, 'agent-handoff.md'), renderIdeFixPrompt(audit, 'local coding agent'));
-    await writeJson(path.join(outDir, 'doctor.json'), audit.doctor);
-    await writeText(path.join(outDir, 'doctor.md'), renderDoctorMarkdown(audit.doctor));
-    await writeJson(path.join(outDir, 'premortem.json'), audit.effective_audit.premortem);
-    await writeText(path.join(outDir, 'premortem.md'), renderPremortemMarkdown(audit.effective_audit.premortem));
-    await writeJson(path.join(outDir, 'golden-loop.json'), audit.effective_audit.golden_loop);
-    await writeText(path.join(outDir, 'golden-loop.md'), renderGoldenLoopMarkdown(audit.effective_audit.golden_loop));
-    await writeJson(path.join(outDir, 'local-receipt.json'), audit.effective_audit.receipt);
-    await writeText(path.join(outDir, 'summary.md'), renderSummaryMarkdown(audit.effective_audit));
-    await writeJson(path.join(outDir, 'healing-plan.json'), audit.healing);
-    await writeText(path.join(outDir, 'healing-plan.md'), renderHealingPlanMarkdown(audit.healing));
-    if (audit.healing.after) {
-      await writeJson(path.join(outDir, 'healing-recheck.json'), audit.healing.after);
-    }
+    const artifacts = await writeAuditArtifacts(outDir, audit);
 
-    if (audit.premortem_session.status === 'complete') {
-      const names = premortemSessionFileNames(audit.premortem_session.timestamp);
-      await writeJson(path.join(outDir, names.json), audit.premortem_session);
-      await writeText(path.join(outDir, names.report), renderPremortemSessionHtml(audit.premortem_session));
-      await writeText(path.join(outDir, names.transcript), renderPremortemSessionTranscript(audit.premortem_session));
-    } else {
-      await writeJson(path.join(outDir, 'premortem-context-needed.json'), audit.premortem_session);
-    }
-
-    if (parsed.openReport) openReport(guidePath);
+    if (parsed.openReport) openReport(artifacts.audit_guide);
     const created = audit.healing.applied.filter((item) => item.status === 'created').length;
     const contextLine = audit.premortem_session.status === 'complete'
       ? renderPremortemSessionSummary(audit.premortem_session)
       : `Premortem needs more context: ${audit.premortem_session.question}`;
     emit(parsed, audit, [
-      `Audit guide written to ${guidePath}`,
-      `IDE handoff written to ${path.join(outDir, 'ide-fix-prompt.md')}`,
+      `Audit guide written to ${artifacts.audit_guide}`,
+      `IDE handoff written to ${artifacts.ide_fix_prompt}`,
       parsed.applySafeFixes
         ? `Created ${created} safe file(s).`
         : 'Plan only. No files changed outside local artifacts.',

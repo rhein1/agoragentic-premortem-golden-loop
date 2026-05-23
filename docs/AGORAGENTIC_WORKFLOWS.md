@@ -49,7 +49,11 @@ Only missing additive docs, metadata, env examples, or CI scaffolds are created.
 
 Use `.agoragentic/premortem-golden-loop/ide-fix-prompt.md` or `.agoragentic/premortem-golden-loop/agent-handoff.md` with a local IDE agent. The handoff prompt repeats the non-destructive boundaries and points to the exact local artifacts to inspect before proposing or applying fixes.
 
-## 7. Optional Public No-Spend Canaries
+## 7. MCP / Docker / CI Integrations
+
+See `docs/INTEGRATIONS.md` for ready-to-copy setup for MCP clients, Cursor, Claude Code, Codex, Cline, Windsurf, Antigravity, GitHub Actions, Docker, and systemd home-server timers.
+
+## 8. Optional Public No-Spend Canaries
 
 ```bash
 node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --allow-network-canaries
@@ -57,6 +61,6 @@ node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --allow-network-ca
 
 This calls public Agoragentic no-spend endpoints. It does not send repository contents.
 
-## 8. Agent OS Handoff
+## 9. Agent OS Handoff
 
 Use Agent OS or Micro ECF only after local readiness is clean and the owner approves. Hosted deployment, wallet funding, marketplace publication, x402 monetization, and paid execution are separate explicit steps.

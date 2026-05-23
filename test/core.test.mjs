@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,6 +9,7 @@ import { runAll, runAudit, runDoctor, runHeal, runPremortem, runPremortemSession
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BIN = path.join(ROOT, 'bin', 'agoragentic-premortem-golden-loop.mjs');
+const MCP_BIN = path.join(ROOT, 'bin', 'agoragentic-premortem-golden-loop-mcp.mjs');
 
 describe('premortem golden loop core', () => {
   it('passes a release-ready local agent repo without network access', async () => {
@@ -85,6 +86,45 @@ describe('premortem golden loop core', () => {
     assert.equal(doctor.boundary.data_sent_anywhere, false);
     assert.ok(doctor.never.includes('No deletes.'));
     assert.ok(doctor.recommended_commands.some((command) => command.includes('audit --repo .')));
+  });
+
+  it('serves local audit tools over MCP stdio', async () => {
+    const repo = await makeFixture({
+      readme: 'Local no-spend Agent OS repository with receipts and owner approval.',
+      agentJson: true,
+      envExample: true
+    });
+    const child = spawn(process.execPath, [MCP_BIN], {
+      cwd: ROOT,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    const state = { buffer: Buffer.alloc(0), responses: [], stderr: '' };
+    child.stdout.on('data', (chunk) => readMcpResponses(state, chunk));
+    child.stderr.on('data', (chunk) => {
+      state.stderr += String(chunk);
+    });
+
+    try {
+      sendMcp(child, 1, 'initialize', {});
+      const init = await waitForMcp(state, 1);
+      assert.equal(init.result.serverInfo.name, 'agoragentic-premortem-golden-loop');
+
+      sendMcp(child, 2, 'tools/list', {});
+      const list = await waitForMcp(state, 2);
+      assert.ok(list.result.tools.some((tool) => tool.name === 'agoragentic_audit'));
+
+      sendMcp(child, 3, 'tools/call', {
+        name: 'agoragentic_doctor',
+        arguments: { repo }
+      });
+      const call = await waitForMcp(state, 3);
+      const parsed = JSON.parse(call.result.content[0].text);
+      assert.equal(parsed.schema, 'agoragentic.premortem-golden-loop.doctor.v1');
+      assert.equal(parsed.boundary.data_sent_anywhere, false);
+    } finally {
+      child.stdin.end();
+      child.kill();
+    }
   });
 
   it('audit writes an HTML guide and IDE handoff without changing repo files by default', async () => {
@@ -273,6 +313,28 @@ describe('premortem golden loop core', () => {
     assert.ok(report.applied.length > 0);
     assert.ok(report.applied.every((item) => item.status === 'blocked'));
   });
+
+  it('ships integration templates for common local agents', async () => {
+    const required = [
+      'docs/INTEGRATIONS.md',
+      'Dockerfile',
+      'docker-compose.yml',
+      'templates/github-actions/agoragentic-premortem-golden-loop.yml',
+      'templates/mcp/claude-desktop.json',
+      'templates/cursor/agoragentic-premortem-golden-loop.mdc',
+      'templates/claude/CLAUDE.md',
+      'templates/codex/AGENTS.md',
+      'templates/cline/.clinerules',
+      'templates/windsurf/.windsurfrules',
+      'templates/antigravity/GEMINI.md',
+      'templates/systemd/agoragentic-premortem-golden-loop.service',
+      'templates/systemd/agoragentic-premortem-golden-loop.timer'
+    ];
+
+    for (const rel of required) {
+      assert.equal(await exists(path.join(ROOT, ...rel.split('/'))), true, rel);
+    }
+  });
 });
 
 async function makeFixture({ readme, agentJson, envExample, testScript = true }) {
@@ -312,4 +374,48 @@ async function exists(filePath) {
   } catch {
     return false;
   }
+}
+
+function sendMcp(child, id, method, params) {
+  const body = JSON.stringify({ jsonrpc: '2.0', id, method, params });
+  child.stdin.write(`Content-Length: ${Buffer.byteLength(body, 'utf8')}\r\n\r\n${body}`);
+}
+
+function readMcpResponses(state, chunk) {
+  state.buffer = Buffer.concat([state.buffer, chunk]);
+  while (true) {
+    const headerEnd = state.buffer.indexOf('\r\n\r\n');
+    if (headerEnd === -1) return;
+    const header = state.buffer.slice(0, headerEnd).toString('utf8');
+    const match = header.match(/content-length:\s*(\d+)/i);
+    if (!match) {
+      state.buffer = state.buffer.slice(headerEnd + 4);
+      continue;
+    }
+    const length = Number(match[1]);
+    const bodyStart = headerEnd + 4;
+    const bodyEnd = bodyStart + length;
+    if (state.buffer.length < bodyEnd) return;
+    const body = state.buffer.slice(bodyStart, bodyEnd).toString('utf8');
+    state.buffer = state.buffer.slice(bodyEnd);
+    state.responses.push(JSON.parse(body));
+  }
+}
+
+function waitForMcp(state, id) {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const timer = setInterval(() => {
+      const index = state.responses.findIndex((response) => response.id === id);
+      if (index !== -1) {
+        clearInterval(timer);
+        resolve(state.responses.splice(index, 1)[0]);
+        return;
+      }
+      if (Date.now() - started > 4000) {
+        clearInterval(timer);
+        reject(new Error(`Timed out waiting for MCP response ${id}. stderr: ${state.stderr}`));
+      }
+    }, 10);
+  });
 }

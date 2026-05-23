@@ -1,0 +1,11 @@
+[Unit]
+Description=Agoragentic Premortem Golden Loop local audit
+Documentation=https://github.com/rhein1/agoragentic-premortem-golden-loop
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/my-agent
+Environment=AGORAGENTIC_NO_SPEND=1
+Environment=AGORAGENTIC_ALLOW_REAL_SPEND=0
+Environment=AGORAGENTIC_ALLOW_NETWORK_CANARIES=0
+ExecStart=/usr/bin/npx --yes agoragentic-premortem-golden-loop audit --repo /srv/my-agent --ci --skip-network

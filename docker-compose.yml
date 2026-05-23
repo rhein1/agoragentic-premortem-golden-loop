@@ -1,0 +1,8 @@
+services:
+  premortem-golden-loop:
+    build: .
+    network_mode: "none"
+    working_dir: /workspace
+    volumes:
+      - ${AGORAGENTIC_REPO:-.}:/workspace
+    command: ["audit", "--repo", "/workspace"]

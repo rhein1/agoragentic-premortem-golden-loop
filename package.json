@@ -6,6 +6,7 @@
   "license": "MIT",
   "bin": {
     "agoragentic-premortem-golden-loop": "./bin/agoragentic-premortem-golden-loop.mjs",
+    "agoragentic-premortem-golden-loop-mcp": "./bin/agoragentic-premortem-golden-loop-mcp.mjs",
     "agoragentic-premortem": "./bin/agoragentic-premortem-golden-loop.mjs",
     "agoragentic-golden-loop": "./bin/agoragentic-premortem-golden-loop.mjs"
   },
@@ -14,14 +15,17 @@
     "bin/",
     "src/",
     "docs/",
+    "templates/",
     "agent.json",
+    "Dockerfile",
+    "docker-compose.yml",
     "PROMPT.md",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check bin/agoragentic-premortem-golden-loop.mjs && node --check src/core.mjs"
+    "check": "node --check bin/agoragentic-premortem-golden-loop.mjs && node --check bin/agoragentic-premortem-golden-loop-mcp.mjs && node --check src/core.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -1342,7 +1342,11 @@ Only additive docs, metadata, env examples, or CI scaffolds are created. Existin
 
 Use \`.agoragentic/premortem-golden-loop/ide-fix-prompt.md\` or \`.agoragentic/premortem-golden-loop/agent-handoff.md\` with a local IDE agent. The handoff prompt repeats the non-destructive boundaries and points to the exact local artifacts to inspect before proposing or applying fixes.
 
-## 7. Optional Public No-Spend Canaries
+## 7. MCP / Docker / CI Integrations
+
+See \`docs/INTEGRATIONS.md\` for ready-to-copy setup for MCP clients, Cursor, Claude Code, Codex, Cline, Windsurf, Antigravity, GitHub Actions, Docker, and systemd home-server timers.
+
+## 8. Optional Public No-Spend Canaries
 
 \`\`\`bash
 npx agoragentic-premortem-golden-loop audit --repo . --allow-network-canaries
@@ -1350,7 +1354,7 @@ npx agoragentic-premortem-golden-loop audit --repo . --allow-network-canaries
 
 This calls public Agoragentic no-spend endpoints. It does not send repository contents.
 
-## 8. Agent OS Handoff
+## 9. Agent OS Handoff
 
 Use Agent OS or Micro ECF only after local readiness is clean and the owner approves. Hosted deployment, wallet funding, marketplace publication, x402 monetization, and paid execution are separate explicit steps.
 `;
@@ -1443,7 +1447,7 @@ jobs:
         with:
           node-version: "20"
       - name: Run local no-spend readiness
-        run: npx --yes agoragentic-premortem-golden-loop run --repo . --ci --skip-network
+        run: npx --yes agoragentic-premortem-golden-loop audit --repo . --ci --skip-network
 `;
 }
 
@@ -1998,6 +2002,50 @@ export async function writeJson(filePath, value) {
 export async function writeText(filePath, value) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(filePath, value, 'utf8');
+}
+
+export async function writeAuditArtifacts(outDir, audit) {
+  const guidePath = path.join(outDir, 'audit-guide.html');
+  const idePromptPath = path.join(outDir, 'ide-fix-prompt.md');
+  const agentHandoffPath = path.join(outDir, 'agent-handoff.md');
+
+  await writeJson(path.join(outDir, 'audit.json'), audit);
+  await writeText(path.join(outDir, 'audit-summary.md'), renderAuditSummaryMarkdown(audit));
+  await writeText(guidePath, renderAuditGuideHtml(audit));
+  await writeText(idePromptPath, renderIdeFixPrompt(audit, 'local IDE agent'));
+  await writeText(agentHandoffPath, renderIdeFixPrompt(audit, 'local coding agent'));
+  await writeJson(path.join(outDir, 'doctor.json'), audit.doctor);
+  await writeText(path.join(outDir, 'doctor.md'), renderDoctorMarkdown(audit.doctor));
+  await writeJson(path.join(outDir, 'premortem.json'), audit.effective_audit.premortem);
+  await writeText(path.join(outDir, 'premortem.md'), renderPremortemMarkdown(audit.effective_audit.premortem));
+  await writeJson(path.join(outDir, 'golden-loop.json'), audit.effective_audit.golden_loop);
+  await writeText(path.join(outDir, 'golden-loop.md'), renderGoldenLoopMarkdown(audit.effective_audit.golden_loop));
+  await writeJson(path.join(outDir, 'local-receipt.json'), audit.effective_audit.receipt);
+  await writeText(path.join(outDir, 'summary.md'), renderSummaryMarkdown(audit.effective_audit));
+  await writeJson(path.join(outDir, 'healing-plan.json'), audit.healing);
+  await writeText(path.join(outDir, 'healing-plan.md'), renderHealingPlanMarkdown(audit.healing));
+  if (audit.healing.after) {
+    await writeJson(path.join(outDir, 'healing-recheck.json'), audit.healing.after);
+  }
+
+  if (audit.premortem_session.status === 'complete') {
+    const names = premortemSessionFileNames(audit.premortem_session.timestamp);
+    await writeJson(path.join(outDir, names.json), audit.premortem_session);
+    await writeText(path.join(outDir, names.report), renderPremortemSessionHtml(audit.premortem_session));
+    await writeText(path.join(outDir, names.transcript), renderPremortemSessionTranscript(audit.premortem_session));
+  } else {
+    await writeJson(path.join(outDir, 'premortem-context-needed.json'), audit.premortem_session);
+  }
+
+  return {
+    out_dir: outDir,
+    audit_json: path.join(outDir, 'audit.json'),
+    audit_guide: guidePath,
+    audit_summary: path.join(outDir, 'audit-summary.md'),
+    ide_fix_prompt: idePromptPath,
+    agent_handoff: agentHandoffPath,
+    local_receipt: path.join(outDir, 'local-receipt.json')
+  };
 }
 
 export function renderPremortemMarkdown(report) {

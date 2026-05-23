@@ -1,0 +1,19 @@
+---
+description: Run local Agoragentic Premortem Golden Loop audits safely.
+alwaysApply: false
+---
+
+When asked to audit, premortem, Golden Loop, self-test, self-heal, or prepare this repo for release:
+
+1. Run `npx agoragentic-premortem-golden-loop doctor --repo .` first and summarize the boundary.
+2. Run `npx agoragentic-premortem-golden-loop audit --repo .` for the local audit.
+3. Read `.agoragentic/premortem-golden-loop/ide-fix-prompt.md` before proposing fixes.
+4. Use `--apply-safe-fixes` only after owner approval.
+
+Safety boundaries:
+
+- Do not delete files.
+- Do not overwrite existing files.
+- Do not edit application source code unless the owner asks for a reviewed patch.
+- Do not install dependencies, deploy, publish, call paid `execute()`, sign wallets, or transfer funds.
+- Do not make network calls unless the owner explicitly passes a network flag.

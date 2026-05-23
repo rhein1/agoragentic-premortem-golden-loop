@@ -1,0 +1,24 @@
+name: Agoragentic Premortem Golden Loop
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  local-readiness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AGORAGENTIC_NO_SPEND: "1"
+      AGORAGENTIC_ALLOW_REAL_SPEND: "0"
+      AGORAGENTIC_ALLOW_NETWORK_CANARIES: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run local no-spend audit
+        run: npx --yes agoragentic-premortem-golden-loop audit --repo . --ci --skip-network
