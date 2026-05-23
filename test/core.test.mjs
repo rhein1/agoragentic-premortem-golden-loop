@@ -317,6 +317,10 @@ describe('premortem golden loop core', () => {
   it('ships integration templates for common local agents', async () => {
     const required = [
       'docs/INTEGRATIONS.md',
+      'docs/RELEASE.md',
+      'examples/sample-audit-summary.md',
+      'examples/sample-ide-fix-prompt.md',
+      'examples/sample-local-receipt.json',
       'Dockerfile',
       'docker-compose.yml',
       'templates/github-actions/agoragentic-premortem-golden-loop.yml',

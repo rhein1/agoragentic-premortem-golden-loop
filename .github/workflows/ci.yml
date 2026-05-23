@@ -23,3 +23,10 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
+      - run: >
+          node bin/agoragentic-premortem-golden-loop.mjs audit --repo .
+          --plan "Release this local-first OSS premortem and Golden Loop readiness agent with CLI, MCP, Docker, CI, examples, and IDE integration templates."
+          --audience "AI agent builders preparing public releases"
+          --success "builders run the audit through their IDE or local server, fix at least one blocker, and keep a local receipt"
+          --ci
+          --skip-network

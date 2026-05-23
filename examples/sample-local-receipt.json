@@ -1,0 +1,33 @@
+{
+  "sample": true,
+  "schema": "agoragentic.premortem-golden-loop.local-receipt.v1",
+  "receipt_id": "pgl_sample00000000",
+  "generated_at": "2026-01-01T00:00:00.000Z",
+  "root": "/sample/local-agent",
+  "repo_fingerprint": "sample0000000000",
+  "premortem_summary": {
+    "score": 78,
+    "blockers": 0,
+    "warnings": 2,
+    "info": 1,
+    "risk_count": 3
+  },
+  "golden_loop_summary": {
+    "pass": 6,
+    "warn": 2,
+    "fail": 0,
+    "skip": 2
+  },
+  "pass": true,
+  "no_spend": true,
+  "boundary": {
+    "free_to_use": true,
+    "network_calls": false,
+    "repo_contents_uploaded": false,
+    "credentials_required": false,
+    "paid_execution": false,
+    "production_mutation": false,
+    "real_usdc_transfer": false,
+    "agoragentic_api_key_required": false
+  }
+}

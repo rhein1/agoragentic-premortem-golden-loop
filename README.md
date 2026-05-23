@@ -34,6 +34,8 @@ npx agoragentic-premortem-golden-loop run --repo .
 
 Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, and a dependency-free MCP stdio server.
 
+Release steps live in [`docs/RELEASE.md`](./docs/RELEASE.md). Sanitized sample outputs live in [`examples/`](./examples/).
+
 ## Commands
 
 ```bash
@@ -146,6 +148,34 @@ By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it m
 - IDE agents: copy the relevant template from [`templates/`](./templates/) for Cursor, Claude Code, Codex, Cline, Windsurf, or Antigravity
 
 See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) for exact setup steps.
+
+## Examples And Release
+
+Sanitized sample artifacts:
+
+- [`examples/sample-audit-summary.md`](./examples/sample-audit-summary.md)
+- [`examples/sample-ide-fix-prompt.md`](./examples/sample-ide-fix-prompt.md)
+- [`examples/sample-local-receipt.json`](./examples/sample-local-receipt.json)
+
+Release checklist:
+
+- [`docs/RELEASE.md`](./docs/RELEASE.md)
+
+Automatically validated:
+
+- syntax checks
+- Node test suite
+- local no-spend `run --repo . --ci`
+- local no-spend `audit --repo . --ci --skip-network`
+- npm package dry run during local release validation
+
+Manual owner checks/actions:
+
+- Docker runtime build/run, when Docker is available
+- MCP client configuration inside the target client
+- npm publish
+- Git tag and GitHub release
+- GitHub social preview upload using [`assets/social-card.png`](./assets/social-card.png)
 
 ## Premortem Session Workflow
 
