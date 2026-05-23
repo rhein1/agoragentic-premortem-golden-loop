@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
-import { runAll, runHeal, runPremortem, runPremortemSession } from '../src/core.mjs';
+import { runAll, runAudit, runDoctor, runHeal, runPremortem, runPremortemSession } from '../src/core.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BIN = path.join(ROOT, 'bin', 'agoragentic-premortem-golden-loop.mjs');
@@ -70,6 +70,83 @@ describe('premortem golden loop core', () => {
     assert.equal((await exists(path.join(out, 'premortem.json'))), true);
     assert.equal((await exists(path.join(out, 'golden-loop.json'))), true);
     assert.equal((await exists(path.join(out, 'local-receipt.json'))), true);
+  });
+
+  it('doctor explains the local safety boundary before an audit', async () => {
+    const repo = await makeFixture({
+      readme: 'Local no-spend Agent OS repository with receipts and owner approval.',
+      agentJson: true,
+      envExample: true
+    });
+
+    const doctor = await runDoctor({ repo });
+
+    assert.equal(doctor.status, 'ready');
+    assert.equal(doctor.boundary.data_sent_anywhere, false);
+    assert.ok(doctor.never.includes('No deletes.'));
+    assert.ok(doctor.recommended_commands.some((command) => command.includes('audit --repo .')));
+  });
+
+  it('audit writes an HTML guide and IDE handoff without changing repo files by default', async () => {
+    const repo = await makeFixture({
+      readme: 'Local OSS agent with install docs but missing discovery metadata and explicit safety workflows. Success: builders run it and fix release blockers.',
+      agentJson: false,
+      envExample: false,
+      testScript: false
+    });
+    const out = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'pgl-audit-')), 'artifacts');
+    const result = spawnSync(process.execPath, [
+      BIN,
+      'audit',
+      '--repo',
+      repo,
+      '--out',
+      out,
+      '--plan',
+      'Release a local-first OSS agent that audits Golden Loop readiness.',
+      '--audience',
+      'AI agent builders using local IDEs',
+      '--success',
+      'builders produce a receipt and fix one blocker before release',
+      '--json'
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8'
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.schema, 'agoragentic.premortem-golden-loop.audit.v1');
+    assert.equal(parsed.boundary.self_heal_deletes_files, false);
+    assert.equal((await exists(path.join(out, 'audit-guide.html'))), true);
+    assert.equal((await exists(path.join(out, 'audit-summary.md'))), true);
+    assert.equal((await exists(path.join(out, 'ide-fix-prompt.md'))), true);
+    assert.equal((await exists(path.join(out, 'agent-handoff.md'))), true);
+    assert.equal((await exists(path.join(repo, 'agent.json'))), false);
+    assert.equal((await exists(path.join(repo, 'docs', 'AGORAGENTIC_SAFETY_BOUNDARIES.md'))), false);
+  });
+
+  it('audit can apply only safe additive scaffolds after explicit approval', async () => {
+    const repo = await makeFixture({
+      readme: 'Local OSS agent with install docs but missing discovery metadata and explicit safety workflows. Success: owners get a clean receipt.',
+      agentJson: false,
+      envExample: false,
+      testScript: false
+    });
+
+    const audit = await runAudit({
+      repo,
+      applySafeFixes: true,
+      plan: 'Release a local no-spend agent readiness checker.',
+      audience: 'open-source AI agent builders',
+      success: 'owners fix Golden Loop blockers before launch'
+    });
+
+    assert.equal(audit.healing.mode, 'apply_safe_fixes');
+    assert.equal(audit.boundary.self_heal_deletes_files, false);
+    assert.ok(audit.healing.applied.some((item) => item.target === 'agent.json' && item.status === 'created'));
+    assert.equal((await exists(path.join(repo, 'agent.json'))), true);
+    assert.equal((await exists(path.join(repo, 'docs', 'AGORAGENTIC_WORKFLOWS.md'))), true);
   });
 
   it('generates a prompt-style premortem session with investigator findings', async () => {
@@ -184,6 +261,17 @@ describe('premortem golden loop core', () => {
     assert.equal((await exists(path.join(out, 'healing-plan.json'))), true);
     assert.equal((await exists(path.join(out, 'healing-plan.md'))), true);
     assert.equal((await exists(path.join(repo, 'docs', 'AGORAGENTIC_SAFETY_BOUNDARIES.md'))), true);
+  });
+
+  it('does not create a missing repository root when safe fixes are requested', async () => {
+    const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'pgl-missing-'));
+    const missing = path.join(parent, 'missing-repo');
+
+    const report = await runHeal({ repo: missing, applySafeFixes: true });
+
+    assert.equal(await exists(missing), false);
+    assert.ok(report.applied.length > 0);
+    assert.ok(report.applied.every((item) => item.status === 'blocked'));
   });
 });
 

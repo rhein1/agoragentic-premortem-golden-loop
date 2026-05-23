@@ -29,10 +29,13 @@ Only when `--apply-safe-fixes` is passed, the agent may create missing additive 
 
 It does not overwrite existing files.
 
+The `audit` command may also write local report and handoff artifacts under `.agoragentic/premortem-golden-loop/`, including `audit-guide.html`, `audit-summary.md`, `ide-fix-prompt.md`, and `agent-handoff.md`.
+
 ## What Self-Heal Will Not Do
 
 - It will not edit application source code.
 - It will not delete files.
+- It will not overwrite existing files.
 - It will not remove secrets automatically.
 - It will not rotate credentials.
 - It will not install dependencies without the user's own package manager command.

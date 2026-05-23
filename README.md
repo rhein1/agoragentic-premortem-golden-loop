@@ -27,12 +27,29 @@ node bin/agoragentic-premortem-golden-loop.mjs run --repo ../my-agent
 When published as a package:
 
 ```bash
+npx agoragentic-premortem-golden-loop doctor --repo .
+npx agoragentic-premortem-golden-loop audit --repo .
 npx agoragentic-premortem-golden-loop run --repo .
 ```
 
 ## Commands
 
 ```bash
+# Explain what the agent will read/write before running the audit.
+node bin/agoragentic-premortem-golden-loop.mjs doctor --repo .
+
+# One-command local audit: repo premortem, Golden Loop, HTML guide, heal plan, IDE handoff.
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo .
+
+# Full audit with business context so the premortem report is complete.
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
+  --plan "Launch an OSS AI agent that runs premortems and Golden Loop readiness checks" \
+  --audience "AI agent builders preparing public releases" \
+  --success "builders install it, run it, and make one concrete launch change"
+
+# Apply only missing additive scaffolds after reviewing the audit.
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --apply-safe-fixes
+
 # Full Klein-style premortem session for a plan, launch, or decision.
 node bin/agoragentic-premortem-golden-loop.mjs session \
   --plan "Launch an OSS AI agent that runs premortems and Golden Loop readiness checks" \
@@ -74,6 +91,13 @@ Artifacts are written to:
   premortem-report-[timestamp].html
   premortem-transcript-[timestamp].md
   premortem-session-[timestamp].json
+  doctor.json
+  doctor.md
+  audit.json
+  audit-guide.html
+  audit-summary.md
+  ide-fix-prompt.md
+  agent-handoff.md
   premortem.json
   premortem.md
   golden-loop.json
@@ -89,12 +113,27 @@ Artifacts are written to:
 
 ![Premortem Golden Loop workflow](./assets/workflow-diagram.png)
 
-1. Run `session` on the business plan, launch, product, hire, or strategy so the agent can expose how it could fail.
-2. Run `run --repo .` on the installable repo to audit the Golden Loop readiness path locally.
-3. Run `heal --repo .` to see the safe self-healing plan without changing files.
-4. Run `heal --repo . --apply-safe-fixes` only after reviewing the plan.
-5. Rerun `run --repo . --ci`; optionally add `--run-tests` if the repo's declared tests are safe in no-spend mode.
-6. Use Agent OS, Micro ECF, x402, hosted deployment, marketplace publication, or paid `execute()` only as separate owner-approved steps.
+1. Paste the GitHub repo into a local IDE/LLM and ask it to run `npx agoragentic-premortem-golden-loop doctor --repo .`.
+2. Review the doctor output: it explains what will be read, what local artifacts will be written, and what the agent will never do.
+3. Run `audit --repo .` to produce the local repo premortem, Golden Loop receipt, HTML guide, self-heal plan, and IDE/agent handoff prompts.
+4. If the business context is missing, rerun `audit` with `--plan`, `--audience`, and `--success` so the full premortem report can be generated.
+5. Give `ide-fix-prompt.md` or `agent-handoff.md` to a local IDE agent to implement safe fixes from the findings.
+6. Run `audit --repo . --apply-safe-fixes` only after reviewing the plan; this creates missing additive scaffolds and still does not delete or overwrite code.
+7. Rerun `audit --repo . --ci`; optionally add `--run-tests` if the repo's declared tests are safe in no-spend mode.
+8. Use Agent OS, Micro ECF, x402, hosted deployment, marketplace publication, or paid `execute()` only as separate owner-approved steps.
+
+## One-Command Audit Flow
+
+`audit` is the intended default for local IDEs and other coding agents. It combines:
+
+- `doctor`: the safety and consent gate
+- repo premortem: local release and operating risk scan
+- no-spend Golden Loop: install/config/discovery/proof/approval/test readiness
+- premortem session: full HTML report when plan, audience, and success context are available
+- self-heal plan: safe additive implementation plan
+- IDE handoff: prompts another local agent can use to fix Golden Loop readiness without destructive changes
+
+By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it may create missing scaffold files, but it still will not delete files, overwrite existing files, edit application source code, install dependencies, deploy, publish, call paid `execute()`, sign wallets, or transfer funds.
 
 ## Premortem Session Workflow
 

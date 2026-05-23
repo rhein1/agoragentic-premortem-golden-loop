@@ -866,6 +866,110 @@ export async function runGoldenLoop(options = {}) {
   };
 }
 
+export async function runDoctor(options = {}) {
+  const root = normalizeRoot(options.repo || options.root || '.');
+  const generatedAt = nowIso();
+  const rootExists = await exists(root);
+  const files = rootExists ? await walkFiles(root, { maxFiles: 2500 }) : [];
+  const packageJson = rootExists ? await readJson(path.join(root, 'package.json')) : null;
+
+  return {
+    schema: 'agoragentic.premortem-golden-loop.doctor.v1',
+    generated_at: generatedAt,
+    root,
+    status: rootExists ? 'ready' : 'blocked',
+    summary: rootExists
+      ? `Ready to run a local no-spend audit on ${files.length} discovered file(s).`
+      : 'Repository path does not exist. No audit or self-heal should run until the path is corrected.',
+    detected: {
+      file_count: files.length,
+      package_name: packageJson?.name || null,
+      has_package_json: Boolean(packageJson),
+      has_readme: rootExists && hasFile(files, ['README.md', 'README.txt', 'readme.md']),
+      has_license: rootExists && hasFile(files, ['LICENSE', 'LICENSE.md', 'COPYING'])
+    },
+    what_it_does: [
+      'Runs a local repo premortem for release and operating risks.',
+      'Runs a no-spend Golden Loop readiness check.',
+      'Writes local receipts, Markdown summaries, and an HTML guide.',
+      'Builds a self-heal plan and IDE/agent handoff prompt from the findings.',
+      'Creates safe missing scaffolds only when --apply-safe-fixes is passed.'
+    ],
+    reads: [
+      'File names and selected text files under the repository root.',
+      'README, docs, package metadata, agent descriptors, env examples, and test metadata.',
+      'Secret-like patterns are reported by file and line only; values are not echoed.'
+    ],
+    writes: [
+      '.agoragentic/premortem-golden-loop/*.json',
+      '.agoragentic/premortem-golden-loop/*.md',
+      '.agoragentic/premortem-golden-loop/*.html',
+      'Only missing additive scaffold files when --apply-safe-fixes is explicitly passed.'
+    ],
+    never: [
+      'No deletes.',
+      'No overwrites of existing project files.',
+      'No application source rewrites.',
+      'No dependency installation.',
+      'No deployment, publishing, paid execute() call, wallet signing, or USDC transfer.',
+      'No network calls unless --allow-network-canaries or --target-url is explicitly passed.',
+      'No repository contents uploaded by default.'
+    ],
+    recommended_commands: [
+      'npx agoragentic-premortem-golden-loop audit --repo .',
+      'npx agoragentic-premortem-golden-loop audit --repo . --plan "Describe the launch or decision" --audience "Who it is for" --success "What a win looks like"',
+      'npx agoragentic-premortem-golden-loop audit --repo . --apply-safe-fixes',
+      'npx agoragentic-premortem-golden-loop audit --repo . --ci --run-tests'
+    ],
+    boundary: LOCAL_PRIVACY_BOUNDARY
+  };
+}
+
+export async function runAudit(options = {}) {
+  const root = normalizeRoot(options.repo || options.root || '.');
+  const generatedAt = nowIso();
+  const timestamp = timestampSlug(generatedAt);
+  const doctor = await runDoctor({ ...options, repo: root });
+  const repoAudit = await runAll({ ...options, repo: root });
+  const healing = await runHeal({ ...options, repo: root, skipNetwork: true });
+  const premortemSession = await runPremortemSession({ ...options, repo: root });
+  const effectiveAudit = healing.after || repoAudit;
+  const status = doctor.status === 'blocked'
+    ? 'blocked'
+    : premortemSession.status === 'needs_context'
+      ? 'needs_context'
+      : effectiveAudit.receipt.pass
+        ? 'ready'
+        : 'needs_fixes';
+
+  const audit = {
+    schema: 'agoragentic.premortem-golden-loop.audit.v1',
+    generated_at: generatedAt,
+    timestamp,
+    root,
+    status,
+    doctor,
+    repo_audit: repoAudit,
+    effective_audit: effectiveAudit,
+    premortem_session: premortemSession,
+    healing,
+    no_spend: true,
+    boundary: {
+      local_by_default: true,
+      free_to_use: true,
+      repo_contents_uploaded: false,
+      credentials_required: false,
+      paid_execution: false,
+      production_mutation: false,
+      destructive_changes: false,
+      self_heal_overwrites_existing_files: false,
+      self_heal_deletes_files: false
+    }
+  };
+  audit.handoff = buildIdeHandoff(audit);
+  return audit;
+}
+
 export async function runAll(options = {}) {
   const root = normalizeRoot(options.repo || options.root || '.');
   const premortem = await runPremortem({ repo: root });
@@ -1037,6 +1141,11 @@ async function buildHealingPlan({ root, premortem, goldenLoop }) {
 
 async function applyHealingPlan(root, plan) {
   const applied = [];
+  if (!await exists(root)) {
+    return plan.actions
+      .filter((action) => action.type === 'create_file')
+      .map((action) => ({ ...action, status: 'blocked', reason: 'Repository root does not exist.' }));
+  }
   for (const action of plan.actions) {
     if (action.type !== 'create_file') continue;
     const full = path.resolve(root, action.target);
@@ -1074,17 +1183,75 @@ function buildAgentDescriptor(projectName) {
       repo_contents_uploaded: false
     },
     workflows: [
+      'doctor',
+      'audit',
       'premortem',
       'self-test',
       'self-heal-plan',
       'golden-loop-readiness'
     ],
     artifacts: [
+      '.agoragentic/premortem-golden-loop/audit-guide.html',
+      '.agoragentic/premortem-golden-loop/audit-summary.md',
+      '.agoragentic/premortem-golden-loop/ide-fix-prompt.md',
       '.agoragentic/premortem-golden-loop/premortem.json',
       '.agoragentic/premortem-golden-loop/golden-loop.json',
       '.agoragentic/premortem-golden-loop/local-receipt.json',
       '.agoragentic/premortem-golden-loop/healing-plan.json'
     ]
+  };
+}
+
+function buildIdeHandoff(audit) {
+  const effective = audit.effective_audit;
+  const nextActions = effective.premortem.next_actions.slice(0, 8);
+  const safeCreates = audit.healing.plan.actions
+    .filter((action) => action.type === 'create_file')
+    .map((action) => ({
+      id: action.id,
+      target: action.target,
+      reason: action.reason
+    }));
+  const manual = audit.healing.plan.manual;
+
+  return {
+    title: 'Local IDE / Agent Handoff',
+    purpose: 'Use these findings to improve Golden Loop readiness without destructive changes.',
+    files_to_read_first: [
+      '.agoragentic/premortem-golden-loop/audit-summary.md',
+      '.agoragentic/premortem-golden-loop/healing-plan.md',
+      '.agoragentic/premortem-golden-loop/golden-loop.md',
+      '.agoragentic/premortem-golden-loop/premortem.md',
+      '.agoragentic/premortem-golden-loop/ide-fix-prompt.md'
+    ],
+    guardrails: [
+      'Do not delete files.',
+      'Do not overwrite existing files.',
+      'Do not edit application source code unless the owner asks for a reviewed patch.',
+      'Do not rotate secrets, deploy, publish, install dependencies, call paid execute(), sign wallet messages, or transfer funds.',
+      'Do not make network calls unless the owner explicitly provides a target URL or network-canary flag.',
+      'If a fix requires changing existing behavior, produce a patch proposal and ask for approval.'
+    ],
+    current_findings: {
+      status: audit.status,
+      premortem_score: effective.premortem.summary.score,
+      blockers: effective.premortem.summary.blockers,
+      warnings: effective.premortem.summary.warnings,
+      golden_loop_failures: effective.golden_loop.summary.fail,
+      golden_loop_warnings: effective.golden_loop.summary.warn,
+      premortem_context_status: audit.premortem_session.status
+    },
+    next_actions: nextActions,
+    safe_additive_implementations: safeCreates,
+    manual_owner_actions: manual,
+    suggested_sequence: [
+      'Read the generated audit artifacts.',
+      'Apply only safe missing scaffolds with --apply-safe-fixes, or implement equivalent additions manually.',
+      'Handle manual owner actions separately, especially license choice and secret rotation.',
+      'Run the repo test suite only when it is safe in no-spend mode.',
+      'Rerun audit with --ci and keep the resulting local receipt.'
+    ],
+    rerun_command: 'npx agoragentic-premortem-golden-loop audit --repo . --ci --run-tests'
   };
 }
 
@@ -1100,6 +1267,8 @@ Make the agent safe to install, inspect, test, and improve locally before any ho
 ## Success Signals
 
 - A new user can run the local premortem and Golden Loop readiness check from a clean checkout.
+- A new user or IDE agent can run \`doctor --repo .\` and understand the local/no-spend boundary before any audit.
+- A repository owner can run \`audit --repo .\` and receive an HTML guide, Golden Loop receipt, healing plan, and IDE handoff prompt.
 - The run produces local receipts under \`.agoragentic/premortem-golden-loop/\`.
 - The user can see exactly what passed, what failed, and what changed.
 - Any self-healing change is additive, reviewable, and made only after explicit approval.
@@ -1126,18 +1295,26 @@ function renderWorkflowsDoc({ projectName }) {
 
 Project: ${projectName}
 
-## 1. Premortem Session
+## 1. Doctor / Consent Gate
 
 \`\`\`bash
-npx agoragentic-premortem-golden-loop session \\
+npx agoragentic-premortem-golden-loop doctor --repo .
+\`\`\`
+
+Output: local doctor artifact explaining what the agent reads, what it writes, and what it will never do.
+
+## 2. One-Command Local Audit
+
+\`\`\`bash
+npx agoragentic-premortem-golden-loop audit --repo . \\
   --plan "Describe the launch or decision" \\
   --audience "Who this is for" \\
   --success "What a win looks like"
 \`\`\`
 
-Output: HTML report, Markdown transcript, and JSON session artifact.
+Output: audit guide HTML, premortem report/transcript when context is sufficient, Golden Loop receipt, healing plan, and IDE/agent handoff prompts.
 
-## 2. Local Self-Test
+## 3. Local Self-Test
 
 \`\`\`bash
 npx agoragentic-premortem-golden-loop run --repo . --ci --skip-network
@@ -1145,7 +1322,7 @@ npx agoragentic-premortem-golden-loop run --repo . --ci --skip-network
 
 Output: premortem audit, no-spend Golden Loop readiness report, and local receipt.
 
-## 3. Self-Heal Plan
+## 4. Self-Heal Plan
 
 \`\`\`bash
 npx agoragentic-premortem-golden-loop heal --repo .
@@ -1153,23 +1330,27 @@ npx agoragentic-premortem-golden-loop heal --repo .
 
 Output: proposed safe fixes only. No files are changed.
 
-## 4. Apply Safe Fixes
+## 5. Apply Safe Fixes
 
 \`\`\`bash
-npx agoragentic-premortem-golden-loop heal --repo . --apply-safe-fixes
+npx agoragentic-premortem-golden-loop audit --repo . --apply-safe-fixes
 \`\`\`
 
 Only additive docs, metadata, env examples, or CI scaffolds are created. Existing files are not overwritten.
 
-## 5. Optional Public No-Spend Canaries
+## 6. IDE / Agent Handoff
+
+Use \`.agoragentic/premortem-golden-loop/ide-fix-prompt.md\` or \`.agoragentic/premortem-golden-loop/agent-handoff.md\` with a local IDE agent. The handoff prompt repeats the non-destructive boundaries and points to the exact local artifacts to inspect before proposing or applying fixes.
+
+## 7. Optional Public No-Spend Canaries
 
 \`\`\`bash
-npx agoragentic-premortem-golden-loop run --repo . --allow-network-canaries
+npx agoragentic-premortem-golden-loop audit --repo . --allow-network-canaries
 \`\`\`
 
 This calls public Agoragentic no-spend endpoints. It does not send repository contents.
 
-## 6. Agent OS Handoff
+## 8. Agent OS Handoff
 
 Use Agent OS or Micro ECF only after local readiness is clean and the owner approves. Hosted deployment, wallet funding, marketplace publication, x402 monetization, and paid execution are separate explicit steps.
 `;
@@ -1207,10 +1388,13 @@ Only when \`--apply-safe-fixes\` is passed, the agent may create missing additiv
 
 It does not overwrite existing files.
 
+The \`audit\` command may also write local report and handoff artifacts under \`.agoragentic/premortem-golden-loop/\`, including \`audit-guide.html\`, \`audit-summary.md\`, \`ide-fix-prompt.md\`, and \`agent-handoff.md\`.
+
 ## What Self-Heal Will Not Do
 
 - It will not edit application source code.
 - It will not delete files.
+- It will not overwrite existing files.
 - It will not remove secrets automatically.
 - It will not rotate credentials.
 - It will not install dependencies without the user's own package manager command.
@@ -1886,6 +2070,287 @@ export function renderSummaryMarkdown(run) {
     'This is a local no-spend receipt. It does not prove paid settlement, hosted deployment, or seller earnings.',
     ''
   ].join('\n');
+}
+
+export function renderDoctorMarkdown(doctor) {
+  const lines = [
+    '# Agoragentic Premortem Golden Loop Doctor',
+    '',
+    `Generated: ${doctor.generated_at}`,
+    `Repository: ${doctor.root}`,
+    `Status: ${doctor.status}`,
+    '',
+    doctor.summary,
+    '',
+    '## What It Does',
+    ''
+  ];
+  for (const item of doctor.what_it_does) lines.push(`- ${item}`);
+  lines.push('', '## Reads', '');
+  for (const item of doctor.reads) lines.push(`- ${item}`);
+  lines.push('', '## Writes', '');
+  for (const item of doctor.writes) lines.push(`- ${item}`);
+  lines.push('', '## Never', '');
+  for (const item of doctor.never) lines.push(`- ${item}`);
+  lines.push('', '## Recommended Commands', '');
+  for (const command of doctor.recommended_commands) lines.push(`\`${command}\``);
+  lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderAuditSummaryMarkdown(audit) {
+  const effective = audit.effective_audit;
+  const lines = [
+    '# Agoragentic Audit Summary',
+    '',
+    `Generated: ${audit.generated_at}`,
+    `Repository: ${audit.root}`,
+    `Status: ${audit.status}`,
+    `Receipt: ${effective.receipt.receipt_id}`,
+    `Premortem score: ${effective.premortem.summary.score}`,
+    `Premortem blockers: ${effective.premortem.summary.blockers}`,
+    `Premortem warnings: ${effective.premortem.summary.warnings}`,
+    `Golden Loop pass: ${effective.golden_loop.pass ? 'yes' : 'no'}`,
+    `Golden Loop failures: ${effective.golden_loop.summary.fail}`,
+    '',
+    '## Boundary',
+    '',
+    '- Local by default',
+    '- Free to use',
+    '- No repository contents uploaded by default',
+    '- No paid execution, wallet signing, deployment, publishing, deletion, or overwrite',
+    '- Safe fixes create missing scaffolds only when `--apply-safe-fixes` is passed',
+    '',
+    '## Premortem Session',
+    ''
+  ];
+
+  if (audit.premortem_session.status === 'complete') {
+    lines.push(`Most likely failure: ${audit.premortem_session.synthesis.most_likely_failure.title}`);
+    lines.push(`Hidden assumption: ${audit.premortem_session.synthesis.hidden_assumption}`);
+  } else {
+    lines.push(`Context needed: ${audit.premortem_session.question}`);
+  }
+
+  lines.push('', '## Golden Loop Stages', '');
+  for (const stageItem of effective.golden_loop.stages) {
+    lines.push(`- [${stageItem.status}] ${stageItem.title}: ${(stageItem.evidence || []).join('; ')}`);
+  }
+
+  lines.push('', '## Recommended Fixes', '');
+  if (!audit.handoff.next_actions.length && !audit.handoff.safe_additive_implementations.length) {
+    lines.push('- No release blockers found. Keep the local receipt with the release artifacts.');
+  } else {
+    for (const item of audit.handoff.next_actions) lines.push(`- [${item.severity}] ${item.action}`);
+    for (const item of audit.handoff.safe_additive_implementations) lines.push(`- [safe-create] ${item.target}: ${item.reason}`);
+  }
+
+  lines.push('', '## IDE / Agent Handoff', '');
+  lines.push('Use `ide-fix-prompt.md` or `agent-handoff.md` with a local IDE agent. The handoff repeats the safety boundaries and current findings.');
+  lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderIdeFixPrompt(audit, audience = 'local IDE agent') {
+  const handoff = audit.handoff;
+  const lines = [
+    `# Agoragentic Handoff For ${audience}`,
+    '',
+    'You are helping improve this repository based on a local Agoragentic Premortem Golden Loop audit.',
+    '',
+    '## Non-Negotiable Boundaries',
+    ''
+  ];
+  for (const item of handoff.guardrails) lines.push(`- ${item}`);
+
+  lines.push('', '## Current Findings', '');
+  lines.push(`- Audit status: ${handoff.current_findings.status}`);
+  lines.push(`- Premortem score: ${handoff.current_findings.premortem_score}`);
+  lines.push(`- Blockers: ${handoff.current_findings.blockers}`);
+  lines.push(`- Warnings: ${handoff.current_findings.warnings}`);
+  lines.push(`- Golden Loop failures: ${handoff.current_findings.golden_loop_failures}`);
+  lines.push(`- Golden Loop warnings: ${handoff.current_findings.golden_loop_warnings}`);
+  lines.push(`- Premortem context status: ${handoff.current_findings.premortem_context_status}`);
+
+  lines.push('', '## Read These Local Artifacts First', '');
+  for (const file of handoff.files_to_read_first) lines.push(`- ${file}`);
+
+  lines.push('', '## Next Actions From Audit', '');
+  if (!handoff.next_actions.length) lines.push('- No blocker actions were generated.');
+  for (const item of handoff.next_actions) lines.push(`- [${item.severity}] ${item.action}`);
+
+  lines.push('', '## Safe Additive Implementations Available', '');
+  if (!handoff.safe_additive_implementations.length) {
+    lines.push('- No missing scaffold files were proposed.');
+  } else {
+    for (const item of handoff.safe_additive_implementations) {
+      lines.push(`- ${item.target}: ${item.reason}`);
+    }
+    lines.push('');
+    lines.push('Owner-approved command to apply only those missing scaffolds:');
+    lines.push('');
+    lines.push('```bash');
+    lines.push('npx agoragentic-premortem-golden-loop audit --repo . --apply-safe-fixes');
+    lines.push('```');
+  }
+
+  lines.push('', '## Manual Owner Actions', '');
+  if (!handoff.manual_owner_actions.length) {
+    lines.push('- None currently required.');
+  } else {
+    for (const item of handoff.manual_owner_actions) lines.push(`- ${item.title}: ${item.action}`);
+  }
+
+  lines.push('', '## Completion Standard', '');
+  for (const item of handoff.suggested_sequence) lines.push(`- ${item}`);
+  lines.push('');
+  lines.push('Rerun when done:');
+  lines.push('');
+  lines.push('```bash');
+  lines.push(handoff.rerun_command);
+  lines.push('```');
+  lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderAuditGuideHtml(audit) {
+  const effective = audit.effective_audit;
+  const riskCards = effective.premortem.risks.length
+    ? effective.premortem.risks.map((risk) => `
+      <article class="card ${escapeHtml(risk.severity)}">
+        <div class="kicker">${escapeHtml(risk.severity)}</div>
+        <h3>${escapeHtml(risk.title)}</h3>
+        <p>${escapeHtml((risk.evidence || []).join('; '))}</p>
+        <strong>${escapeHtml(risk.action)}</strong>
+      </article>
+    `).join('')
+    : '<article class="card pass"><div class="kicker">pass</div><h3>No release blockers found</h3><p>Keep the local receipt with the release artifacts.</p></article>';
+  const stageCards = effective.golden_loop.stages.map((item) => `
+    <article class="card ${escapeHtml(item.status)}">
+      <div class="kicker">${escapeHtml(item.status)}</div>
+      <h3>${escapeHtml(item.title)}</h3>
+      <p>${escapeHtml((item.evidence || []).join('; '))}</p>
+      ${item.action ? `<strong>${escapeHtml(item.action)}</strong>` : ''}
+    </article>
+  `).join('');
+  const safeFixes = audit.handoff.safe_additive_implementations.length
+    ? audit.handoff.safe_additive_implementations.map((item) => `<li><strong>${escapeHtml(item.target)}</strong>: ${escapeHtml(item.reason)}</li>`).join('')
+    : '<li>No missing scaffold files proposed.</li>';
+  const manual = audit.handoff.manual_owner_actions.length
+    ? audit.handoff.manual_owner_actions.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.action)}</li>`).join('')
+    : '<li>No manual owner actions currently required.</li>';
+  const session = audit.premortem_session.status === 'complete'
+    ? `
+      <div class="panel">
+        <h2>Most Likely Failure</h2>
+        <p>${escapeHtml(audit.premortem_session.synthesis.most_likely_failure.title)}</p>
+      </div>
+      <div class="panel">
+        <h2>Hidden Assumption</h2>
+        <p>${escapeHtml(audit.premortem_session.synthesis.hidden_assumption)}</p>
+      </div>
+    `
+    : `
+      <div class="panel wide">
+        <h2>Premortem Context Needed</h2>
+        <p>${escapeHtml(audit.premortem_session.question)}</p>
+      </div>
+    `;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agoragentic Audit Guide</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #0C1222; color: #E2E8F0; }
+    main { max-width: 1180px; margin: 0 auto; padding: 40px 20px 56px; }
+    h1, h2, h3 { margin: 0; line-height: 1.1; letter-spacing: 0; }
+    h1 { font-size: clamp(32px, 5vw, 58px); max-width: 920px; }
+    h2 { font-size: 22px; margin-bottom: 14px; }
+    h3 { font-size: 17px; margin: 8px 0 10px; }
+    p, li { color: #C9D4EF; line-height: 1.55; }
+    strong { color: #F8FAFC; }
+    .eyebrow, .kicker { color: #06B6D4; text-transform: uppercase; font-size: 12px; letter-spacing: .08em; font-weight: 700; }
+    .hero { border-bottom: 1px solid #263044; padding-bottom: 28px; margin-bottom: 28px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .pill { border: 1px solid #3B465C; border-radius: 999px; padding: 8px 12px; color: #CBD5E1; background: #111A2E; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panel, .card { background: #111A2E; border: 1px solid #263044; border-radius: 8px; padding: 18px; }
+    .wide { grid-column: 1 / -1; }
+    .card { border-top: 4px solid #06B6D4; }
+    .card.fail, .card.blocker { border-top-color: #E8613A; }
+    .card.warn, .card.warning { border-top-color: #F59E0B; }
+    .card.pass { border-top-color: #22C55E; }
+    .card.skip, .card.info { border-top-color: #64748B; }
+    .boundary { border-left: 4px solid #E8613A; }
+    code { color: #E2E8F0; background: #0A1019; border: 1px solid #263044; border-radius: 6px; padding: 2px 6px; }
+    footer { margin-top: 34px; color: #94A3B8; font-size: 13px; }
+    @media (max-width: 860px) { .grid, .two { grid-template-columns: 1fr; } main { padding: 28px 14px 40px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Local Premortem Golden Loop Audit</div>
+      <h1>${escapeHtml(path.basename(audit.root))}</h1>
+      <div class="meta">
+        <span class="pill">${escapeHtml(audit.status)}</span>
+        <span class="pill">score ${effective.premortem.summary.score}</span>
+        <span class="pill">${effective.golden_loop.pass ? 'Golden Loop pass' : 'Golden Loop needs fixes'}</span>
+        <span class="pill">no-spend local receipt</span>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="panel boundary">
+        <h2>Safety Boundary</h2>
+        <ul>
+          <li>No deletes or overwrites.</li>
+          <li>No application code rewrites.</li>
+          <li>No paid execution, wallet signing, deployment, publishing, or USDC transfer.</li>
+          <li>No repo contents uploaded by default.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>Receipt</h2>
+        <p><code>${escapeHtml(effective.receipt.receipt_id)}</code></p>
+        <p>Generated ${escapeHtml(effective.receipt.generated_at)}</p>
+      </div>
+    </section>
+
+    <section class="grid two">${session}</section>
+
+    <h2>Premortem Risks</h2>
+    <section class="grid">${riskCards}</section>
+
+    <h2>Golden Loop Stages</h2>
+    <section class="grid">${stageCards}</section>
+
+    <section class="grid two">
+      <div class="panel">
+        <h2>Safe Additive Fixes</h2>
+        <ul>${safeFixes}</ul>
+        <p>Apply only after review with <code>audit --apply-safe-fixes</code>.</p>
+      </div>
+      <div class="panel">
+        <h2>Manual Owner Actions</h2>
+        <ul>${manual}</ul>
+      </div>
+      <div class="panel wide">
+        <h2>IDE / Agent Handoff</h2>
+        <p>Use <code>ide-fix-prompt.md</code> or <code>agent-handoff.md</code> with a local IDE agent. The prompt includes the guardrails and current findings.</p>
+      </div>
+    </section>
+
+    <footer>Generated locally by Agoragentic Premortem Golden Loop. Network and paid paths are opt-in only.</footer>
+  </main>
+</body>
+</html>
+`;
 }
 
 function escapeMd(value) {

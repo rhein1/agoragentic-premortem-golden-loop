@@ -5,14 +5,20 @@ import {
   DEFAULT_BASE_URL,
   DEFAULT_OUTPUT_DIR,
   premortemSessionFileNames,
+  renderAuditGuideHtml,
+  renderAuditSummaryMarkdown,
+  renderDoctorMarkdown,
   renderGoldenLoopMarkdown,
   renderHealingPlanMarkdown,
+  renderIdeFixPrompt,
   renderPremortemMarkdown,
   renderPremortemSessionHtml,
   renderPremortemSessionSummary,
   renderPremortemSessionTranscript,
   renderSummaryMarkdown,
+  runAudit,
   runAll,
+  runDoctor,
   runGoldenLoop,
   runHeal,
   runPremortem,
@@ -25,6 +31,8 @@ const USAGE = `
 Agoragentic Premortem Golden Loop
 
 Usage:
+  agoragentic-premortem-golden-loop doctor [options]
+  agoragentic-premortem-golden-loop audit [options]
   agoragentic-premortem-golden-loop run [options]
   agoragentic-premortem-golden-loop session --plan <text> --audience <who> --success <outcome>
   agoragentic-premortem-golden-loop heal [options]
@@ -75,6 +83,68 @@ async function main(argv) {
     applySafeFixes: parsed.applySafeFixes,
     runTests: parsed.runTests
   };
+
+  if (command === 'doctor' || command === 'init') {
+    const doctor = await runDoctor(options);
+    await writeJson(path.join(outDir, 'doctor.json'), doctor);
+    await writeText(path.join(outDir, 'doctor.md'), renderDoctorMarkdown(doctor));
+    emit(parsed, doctor, [
+      doctor.summary,
+      `Doctor artifacts written to ${outDir}`,
+      'Next: run `agoragentic-premortem-golden-loop audit --repo .` to generate the local audit guide.'
+    ].join('\n'));
+    if (parsed.ci && doctor.status !== 'ready') process.exitCode = 1;
+    return;
+  }
+
+  if (command === 'audit') {
+    const audit = await runAudit(options);
+    const guidePath = path.join(outDir, 'audit-guide.html');
+    await writeJson(path.join(outDir, 'audit.json'), audit);
+    await writeText(path.join(outDir, 'audit-summary.md'), renderAuditSummaryMarkdown(audit));
+    await writeText(guidePath, renderAuditGuideHtml(audit));
+    await writeText(path.join(outDir, 'ide-fix-prompt.md'), renderIdeFixPrompt(audit, 'local IDE agent'));
+    await writeText(path.join(outDir, 'agent-handoff.md'), renderIdeFixPrompt(audit, 'local coding agent'));
+    await writeJson(path.join(outDir, 'doctor.json'), audit.doctor);
+    await writeText(path.join(outDir, 'doctor.md'), renderDoctorMarkdown(audit.doctor));
+    await writeJson(path.join(outDir, 'premortem.json'), audit.effective_audit.premortem);
+    await writeText(path.join(outDir, 'premortem.md'), renderPremortemMarkdown(audit.effective_audit.premortem));
+    await writeJson(path.join(outDir, 'golden-loop.json'), audit.effective_audit.golden_loop);
+    await writeText(path.join(outDir, 'golden-loop.md'), renderGoldenLoopMarkdown(audit.effective_audit.golden_loop));
+    await writeJson(path.join(outDir, 'local-receipt.json'), audit.effective_audit.receipt);
+    await writeText(path.join(outDir, 'summary.md'), renderSummaryMarkdown(audit.effective_audit));
+    await writeJson(path.join(outDir, 'healing-plan.json'), audit.healing);
+    await writeText(path.join(outDir, 'healing-plan.md'), renderHealingPlanMarkdown(audit.healing));
+    if (audit.healing.after) {
+      await writeJson(path.join(outDir, 'healing-recheck.json'), audit.healing.after);
+    }
+
+    if (audit.premortem_session.status === 'complete') {
+      const names = premortemSessionFileNames(audit.premortem_session.timestamp);
+      await writeJson(path.join(outDir, names.json), audit.premortem_session);
+      await writeText(path.join(outDir, names.report), renderPremortemSessionHtml(audit.premortem_session));
+      await writeText(path.join(outDir, names.transcript), renderPremortemSessionTranscript(audit.premortem_session));
+    } else {
+      await writeJson(path.join(outDir, 'premortem-context-needed.json'), audit.premortem_session);
+    }
+
+    if (parsed.openReport) openReport(guidePath);
+    const created = audit.healing.applied.filter((item) => item.status === 'created').length;
+    const contextLine = audit.premortem_session.status === 'complete'
+      ? renderPremortemSessionSummary(audit.premortem_session)
+      : `Premortem needs more context: ${audit.premortem_session.question}`;
+    emit(parsed, audit, [
+      `Audit guide written to ${guidePath}`,
+      `IDE handoff written to ${path.join(outDir, 'ide-fix-prompt.md')}`,
+      parsed.applySafeFixes
+        ? `Created ${created} safe file(s).`
+        : 'Plan only. No files changed outside local artifacts.',
+      contextLine
+    ].join('\n'));
+    exitFor(parsed, audit.effective_audit.premortem.summary.blockers, audit.effective_audit.premortem.summary.warnings, audit.effective_audit.golden_loop.summary.fail);
+    if (parsed.ci && audit.premortem_session.status === 'needs_context') process.exitCode = 1;
+    return;
+  }
 
   if (command === 'session') {
     const session = await runPremortemSession(options);

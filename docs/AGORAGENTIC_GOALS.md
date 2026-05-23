@@ -9,6 +9,8 @@ Make an OSS agent that helps builders run a serious premortem and a no-spend Gol
 ## Success Signals
 
 - A new user can run the premortem session from a clean checkout.
+- A new user or IDE agent can run `doctor --repo .` and understand the local/no-spend boundary before any audit.
+- A repository owner can run `audit --repo .` and receive an HTML guide, Golden Loop receipt, healing plan, and IDE handoff prompt.
 - A repository owner can run `run --repo .` and receive local JSON/Markdown readiness artifacts.
 - A repository owner can run `heal --repo .` and understand the exact safe fixes before anything changes.
 - Any applied self-heal change is additive, reviewable, and owner-approved.

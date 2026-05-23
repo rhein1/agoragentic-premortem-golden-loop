@@ -2,18 +2,26 @@
 
 Project: agoragentic-premortem-golden-loop
 
-## 1. Premortem Session
+## 1. Doctor / Consent Gate
 
 ```bash
-node bin/agoragentic-premortem-golden-loop.mjs session \
+node bin/agoragentic-premortem-golden-loop.mjs doctor --repo .
+```
+
+Output: local doctor artifact explaining what the agent reads, what it writes, and what it will never do.
+
+## 2. One-Command Local Audit
+
+```bash
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
   --plan "Describe the launch or decision" \
   --audience "Who this is for" \
   --success "What a win looks like"
 ```
 
-Output: HTML report, Markdown transcript, and JSON session artifact.
+Output: audit guide HTML, premortem report/transcript when context is sufficient, Golden Loop receipt, healing plan, and IDE/agent handoff prompts.
 
-## 2. Local Self-Test
+## 3. Local Self-Test
 
 ```bash
 node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
@@ -21,7 +29,7 @@ node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
 
 Output: premortem audit, no-spend Golden Loop readiness report, summary, and local receipt.
 
-## 3. Self-Heal Plan
+## 4. Self-Heal Plan
 
 ```bash
 node bin/agoragentic-premortem-golden-loop.mjs heal --repo .
@@ -29,22 +37,26 @@ node bin/agoragentic-premortem-golden-loop.mjs heal --repo .
 
 Output: proposed safe fixes only. No files are changed.
 
-## 4. Apply Safe Fixes
+## 5. Apply Safe Fixes
 
 ```bash
-node bin/agoragentic-premortem-golden-loop.mjs heal --repo . --apply-safe-fixes
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --apply-safe-fixes
 ```
 
 Only missing additive docs, metadata, env examples, or CI scaffolds are created. Existing files are not overwritten.
 
-## 5. Optional Public No-Spend Canaries
+## 6. IDE / Agent Handoff
+
+Use `.agoragentic/premortem-golden-loop/ide-fix-prompt.md` or `.agoragentic/premortem-golden-loop/agent-handoff.md` with a local IDE agent. The handoff prompt repeats the non-destructive boundaries and points to the exact local artifacts to inspect before proposing or applying fixes.
+
+## 7. Optional Public No-Spend Canaries
 
 ```bash
-node bin/agoragentic-premortem-golden-loop.mjs run --repo . --allow-network-canaries
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --allow-network-canaries
 ```
 
 This calls public Agoragentic no-spend endpoints. It does not send repository contents.
 
-## 6. Agent OS Handoff
+## 8. Agent OS Handoff
 
 Use Agent OS or Micro ECF only after local readiness is clean and the owner approves. Hosted deployment, wallet funding, marketplace publication, x402 monetization, and paid execution are separate explicit steps.
