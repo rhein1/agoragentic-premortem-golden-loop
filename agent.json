@@ -5,6 +5,7 @@
   "description": "Free local OSS premortem agent for plans and launches plus no-spend Golden Loop readiness checks and safe self-healing scaffolds for installable AI agent repositories.",
   "entrypoint": "bin/agoragentic-premortem-golden-loop.mjs",
   "mcp_entrypoint": "bin/agoragentic-premortem-golden-loop-mcp.mjs",
+  "http_entrypoint": "bin/agoragentic-premortem-golden-loop-server.mjs",
   "runtime": {
     "language": "javascript",
     "node": ">=18"
@@ -17,6 +18,7 @@
     "heal",
     "premortem",
     "golden-loop",
+    "serve",
     "mcp"
   ],
   "default_boundary": {
@@ -36,6 +38,8 @@
     ".agoragentic/premortem-golden-loop/premortem-transcript-[timestamp].md",
     ".agoragentic/premortem-golden-loop/audit-guide.html",
     ".agoragentic/premortem-golden-loop/audit-summary.md",
+    ".agoragentic/premortem-golden-loop/closure-loop.json",
+    ".agoragentic/premortem-golden-loop/closure-loop.md",
     ".agoragentic/premortem-golden-loop/ide-fix-prompt.md",
     ".agoragentic/premortem-golden-loop/agent-handoff.md",
     ".agoragentic/premortem-golden-loop/premortem.json",
@@ -47,6 +51,25 @@
   "agoragentic": {
     "agent_os_alias": true,
     "external_work_rule": "Prefer execute(task,input,constraints) when the inspected agent needs routed external work.",
+    "external_http_agent": {
+      "start_command": "serve --repo . --host 127.0.0.1 --port 8787",
+      "server_bin": "agoragentic-premortem-golden-loop-server",
+      "requires_bearer_token_for_non_loopback": true,
+      "default_host": "127.0.0.1",
+      "default_port": 8787,
+      "endpoints": [
+        "GET /health",
+        "GET /.well-known/agent.json",
+        "GET /tools",
+        "POST /doctor",
+        "POST /audit",
+        "POST /heal",
+        "POST /premortem",
+        "POST /golden-loop",
+        "POST /session",
+        "POST /run"
+      ]
+    },
     "self_heal": {
       "plan_command": "heal --repo .",
       "apply_command": "heal --repo . --apply-safe-fixes",

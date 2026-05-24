@@ -30,9 +30,10 @@ When published as a package:
 npx agoragentic-premortem-golden-loop doctor --repo .
 npx agoragentic-premortem-golden-loop audit --repo .
 npx agoragentic-premortem-golden-loop run --repo .
+npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
 ```
 
-Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, and a dependency-free MCP stdio server.
+Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md), [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md), and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, a dependency-free MCP stdio server, and an opt-in HTTP external-agent server.
 
 Release steps live in [`docs/RELEASE.md`](./docs/RELEASE.md). Sanitized sample outputs live in [`examples/`](./examples/).
 
@@ -90,6 +91,9 @@ node bin/agoragentic-premortem-golden-loop.mjs run --repo . --allow-network-cana
 
 # Optional runtime probe for a locally running agent.
 node bin/agoragentic-premortem-golden-loop.mjs run --repo . --target-url http://localhost:3000
+
+# Optional external HTTP agent for private tools that cannot speak MCP.
+node bin/agoragentic-premortem-golden-loop.mjs serve --repo . --host 127.0.0.1 --port 8787
 ```
 
 Artifacts are written to:
@@ -152,11 +156,22 @@ By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it m
 
 - CLI: `npx agoragentic-premortem-golden-loop audit --repo .`
 - MCP: `npx --yes --package=agoragentic-premortem-golden-loop -- agoragentic-premortem-golden-loop-mcp`
+- External HTTP agent: `npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787`
 - GitHub Actions: copy [`templates/github-actions/agoragentic-premortem-golden-loop.yml`](./templates/github-actions/agoragentic-premortem-golden-loop.yml)
 - Docker/home server: use [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml), or [`templates/systemd/`](./templates/systemd/)
 - IDE agents: copy the relevant template from [`templates/`](./templates/) for Cursor, Claude Code, Codex, Cline, Windsurf, or Antigravity
 
-See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) for exact setup steps.
+See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) and [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md) for exact setup steps.
+
+## External HTTP Agent
+
+`serve` is an opt-in HTTP surface for local/private agents that cannot use stdio MCP. It binds to `127.0.0.1` by default:
+
+```bash
+npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
+```
+
+Available endpoints include `GET /health`, `GET /.well-known/agent.json`, `GET /tools`, and `POST /audit`. Non-loopback binding requires `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` or `--external-agent-token`; remote safe fixes, network probes, and test execution require separate owner-approval flags. See [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md).
 
 ## Examples And Release
 
@@ -183,6 +198,7 @@ Manual owner checks/actions:
 
 - Docker runtime build/run, when Docker is available
 - MCP client configuration inside the target client
+- external HTTP agent smoke test on the target host or private network
 - npm publish
 - Git tag and GitHub release
 - GitHub social preview upload using [`assets/social-card.png`](./assets/social-card.png)

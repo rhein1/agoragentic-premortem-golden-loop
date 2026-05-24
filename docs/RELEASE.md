@@ -17,6 +17,7 @@ node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
   --success "builders run the audit through their IDE or local server, fix at least one blocker, and keep a local receipt" \
   --ci \
   --skip-network
+node --check bin/agoragentic-premortem-golden-loop-server.mjs
 npm pack --dry-run
 ```
 
@@ -43,6 +44,18 @@ Add the config from `templates/mcp/claude-desktop.json` or `templates/mcp/mcp.js
 - `agoragentic_premortem_session`
 
 Run `agoragentic_doctor` against a test repo before running `agoragentic_audit`.
+
+### External HTTP Agent
+
+```bash
+node bin/agoragentic-premortem-golden-loop.mjs serve --repo . --host 127.0.0.1 --port 8787
+curl http://127.0.0.1:8787/health
+curl -s http://127.0.0.1:8787/audit \
+  -H "content-type: application/json" \
+  -d @templates/external-agent/audit-request.json
+```
+
+For non-loopback binding, set `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` and verify authenticated requests before exposing the service to a private network.
 
 ## npm Publish
 
@@ -79,7 +92,8 @@ Initial public release of Agoragentic Premortem Golden Loop Agent.
 - HTML audit guide, local receipts, and IDE handoff prompts
 - Conservative additive self-heal scaffolds
 - Dependency-free MCP stdio server
-- Templates for Cursor, Claude Code, Codex, Cline, Windsurf, Antigravity, GitHub Actions, Docker, and systemd
+- Opt-in external HTTP agent server
+- Templates for Cursor, Claude Code, Codex, Cline, Windsurf, Antigravity, GitHub Actions, Docker, external HTTP, and systemd
 - No API key, wallet, network call, paid execution, deployment, deletion, or overwrite by default
 ```
 
@@ -101,4 +115,4 @@ Manual owner action:
 
 ## Owner Boundary
 
-The repository can generate local readiness artifacts, examples, and handoff prompts. The owner remains responsible for npm publish, Git tags, GitHub releases, social preview settings, Docker runtime checks, and MCP client configuration.
+The repository can generate local readiness artifacts, examples, and handoff prompts. The owner remains responsible for npm publish, Git tags, GitHub releases, social preview settings, Docker runtime checks, MCP client configuration, and external HTTP agent deployment/authentication.

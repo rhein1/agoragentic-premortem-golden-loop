@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
 import { runAll, runAudit, runDoctor, runHeal, runPremortem, runPremortemSession } from '../src/core.mjs';
+import { createExternalAgentServer } from '../src/http-server.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BIN = path.join(ROOT, 'bin', 'agoragentic-premortem-golden-loop.mjs');
@@ -124,6 +125,63 @@ describe('premortem golden loop core', () => {
     } finally {
       child.stdin.end();
       child.kill();
+    }
+  });
+
+  it('serves an opt-in external HTTP agent with auth and remote-action gates', async () => {
+    const repo = await makeFixture({
+      readme: 'Local no-spend Agent OS repository with receipts and owner approval.',
+      agentJson: true,
+      envExample: true
+    });
+    const server = createExternalAgentServer({ repo, token: 'test-token' });
+    await listenHttp(server);
+    const baseUrl = `http://127.0.0.1:${server.address().port}`;
+
+    try {
+      const health = await fetch(`${baseUrl}/health`);
+      assert.equal(health.status, 200);
+      const healthJson = await health.json();
+      assert.equal(healthJson.token_required, true);
+      assert.equal(healthJson.boundary.paid_execution, false);
+
+      const unauthorized = await fetch(`${baseUrl}/audit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      assert.equal(unauthorized.status, 401);
+
+      const forbidden = await fetch(`${baseUrl}/audit`, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ applySafeFixes: true })
+      });
+      assert.equal(forbidden.status, 403);
+
+      const audit = await fetch(`${baseUrl}/audit`, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer test-token',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          plan: 'Release a local external agent wrapper.',
+          audience: 'AI agent builders',
+          success: 'builders run the external audit and keep the receipt'
+        })
+      });
+      assert.equal(audit.status, 200);
+      const parsed = await audit.json();
+      assert.equal(parsed.schema, 'agoragentic.premortem-golden-loop.audit.v1');
+      assert.equal(parsed.boundary.paid_execution, false);
+      assert.equal(parsed.artifacts.closure_loop.endsWith('closure-loop.json'), true);
+      assert.equal(await exists(parsed.artifacts.closure_loop), true);
+    } finally {
+      await closeHttp(server);
     }
   });
 
@@ -382,6 +440,7 @@ describe('premortem golden loop core', () => {
   it('ships integration templates for common local agents', async () => {
     const required = [
       'docs/INTEGRATIONS.md',
+      'docs/EXTERNAL_AGENT.md',
       'docs/RELEASE.md',
       'examples/sample-audit-summary.md',
       'examples/sample-closure-loop.md',
@@ -389,12 +448,15 @@ describe('premortem golden loop core', () => {
       'examples/sample-local-receipt.json',
       'Dockerfile',
       'docker-compose.yml',
+      'bin/agoragentic-premortem-golden-loop-server.mjs',
+      'src/http-server.mjs',
       'scripts/generate-brand-assets.mjs',
       'assets/social-card.svg',
       'assets/readme-hero.svg',
       'assets/workflow-diagram.svg',
       'assets/icon.svg',
       'templates/github-actions/agoragentic-premortem-golden-loop.yml',
+      'templates/external-agent/audit-request.json',
       'templates/mcp/claude-desktop.json',
       'templates/cursor/agoragentic-premortem-golden-loop.mdc',
       'templates/claude/CLAUDE.md',
@@ -403,6 +465,7 @@ describe('premortem golden loop core', () => {
       'templates/windsurf/.windsurfrules',
       'templates/antigravity/GEMINI.md',
       'templates/systemd/agoragentic-premortem-golden-loop.service',
+      'templates/systemd/agoragentic-premortem-golden-loop-server.service',
       'templates/systemd/agoragentic-premortem-golden-loop.timer'
     ];
 
@@ -492,5 +555,24 @@ function waitForMcp(state, id) {
         reject(new Error(`Timed out waiting for MCP response ${id}. stderr: ${state.stderr}`));
       }
     }, 10);
+  });
+}
+
+function listenHttp(server) {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
+}
+
+function closeHttp(server) {
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
   });
 }

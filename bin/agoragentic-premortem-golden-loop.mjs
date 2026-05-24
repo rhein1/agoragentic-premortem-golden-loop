@@ -2,6 +2,11 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import {
+  DEFAULT_EXTERNAL_AGENT_HOST,
+  DEFAULT_EXTERNAL_AGENT_PORT,
+  startHttpServer
+} from '../src/http-server.mjs';
+import {
   DEFAULT_BASE_URL,
   DEFAULT_OUTPUT_DIR,
   premortemSessionFileNames,
@@ -36,6 +41,7 @@ Usage:
   agoragentic-premortem-golden-loop heal [options]
   agoragentic-premortem-golden-loop premortem [options]
   agoragentic-premortem-golden-loop golden-loop [options]
+  agoragentic-premortem-golden-loop serve [options]
 
 Options:
   --repo <path>         Agent repository to inspect. Defaults to current directory.
@@ -52,6 +58,16 @@ Options:
   --run-tests           Run package.json scripts.test with AGORAGENTIC_NO_SPEND=1.
   --apply-safe-fixes    For heal: create only missing additive docs/metadata/CI files.
   --open-report         Open the generated HTML report with the OS default app.
+  --host <host>         For serve: host to bind. Defaults to ${DEFAULT_EXTERNAL_AGENT_HOST}.
+  --port <port>         For serve: port to bind. Defaults to ${DEFAULT_EXTERNAL_AGENT_PORT}.
+  --external-agent-token <text>
+                       For serve: bearer token. Required for non-loopback host binding.
+  --allow-remote-safe-fixes
+                       For serve: let authenticated callers request --apply-safe-fixes.
+  --allow-remote-network
+                       For serve: let authenticated callers request target-url or no-spend canaries.
+  --allow-remote-tests
+                       For serve: let authenticated callers run package.json scripts.test.
   --json                Print JSON to stdout.
   --ci                  Exit non-zero when blockers or Golden Loop failures remain.
   --fail-on <level>     never, blocker, warning. Defaults to never.
@@ -81,6 +97,39 @@ async function main(argv) {
     applySafeFixes: parsed.applySafeFixes,
     runTests: parsed.runTests
   };
+
+  if (command === 'serve' || command === 'server') {
+    const server = await startHttpServer({
+      repo,
+      host: parsed.host,
+      port: parsed.port,
+      ['token']: parsed.externalAgentBearer,
+      baseUrl: options.baseUrl,
+      allowRemoteSafeFixes: parsed.allowRemoteSafeFixes,
+      allowRemoteNetwork: parsed.allowRemoteNetwork,
+      allowRemoteTests: parsed.allowRemoteTests
+    });
+    emit(parsed, {
+      schema: 'agoragentic.premortem-golden-loop.external-agent.started.v1',
+      url: server.url,
+      allowed_root: server.allowed_root,
+      token_required: server.token_required,
+      boundary: {
+        local_first: true,
+        outbound_network_default: false,
+        paid_execution: false,
+        deletes_files: false,
+        overwrites_files: false,
+        source_rewrites: false
+      }
+    }, [
+      `External agent HTTP server listening on ${server.url}`,
+      `Allowed root: ${server.allowed_root}`,
+      `Bearer token required: ${server.token_required ? 'yes' : 'no'}`,
+      'Default boundary: local-only repo audit, no outbound network, no paid execution, no deletes, no overwrites.'
+    ].join('\n'));
+    return;
+  }
 
   if (command === 'doctor' || command === 'init') {
     const doctor = await runDoctor(options);
@@ -198,6 +247,12 @@ function parseArgs(argv) {
     allowNetworkCanaries: false,
     runTests: false,
     applySafeFixes: false,
+    host: DEFAULT_EXTERNAL_AGENT_HOST,
+    port: DEFAULT_EXTERNAL_AGENT_PORT,
+    externalAgentBearer: process.env.AGORAGENTIC_EXTERNAL_AGENT_TOKEN || '',
+    allowRemoteSafeFixes: false,
+    allowRemoteNetwork: false,
+    allowRemoteTests: false,
     plan: null,
     planFile: null,
     audience: null,
@@ -228,6 +283,12 @@ function parseArgs(argv) {
     else if (arg === '--run-tests') parsed.runTests = true;
     else if (arg === '--apply-safe-fixes') parsed.applySafeFixes = true;
     else if (arg === '--open-report') parsed.openReport = true;
+    else if (arg === '--host') parsed.host = takeValue(args, ++index, arg);
+    else if (arg === '--port') parsed.port = Number(takeValue(args, ++index, arg));
+    else if (arg === '--external-agent-token') parsed.externalAgentBearer = takeValue(args, ++index, arg);
+    else if (arg === '--allow-remote-safe-fixes') parsed.allowRemoteSafeFixes = true;
+    else if (arg === '--allow-remote-network') parsed.allowRemoteNetwork = true;
+    else if (arg === '--allow-remote-tests') parsed.allowRemoteTests = true;
     else if (arg === '--json') parsed.json = true;
     else if (arg === '--ci') parsed.ci = true;
     else if (arg === '--fail-on') parsed.failOn = takeValue(args, ++index, arg);
@@ -236,6 +297,9 @@ function parseArgs(argv) {
 
   if (!['never', 'blocker', 'warning'].includes(parsed.failOn)) {
     throw new Error('--fail-on must be never, blocker, or warning');
+  }
+  if (!Number.isInteger(parsed.port) || parsed.port < 0 || parsed.port > 65535) {
+    throw new Error('--port must be an integer from 0 to 65535');
   }
   return parsed;
 }

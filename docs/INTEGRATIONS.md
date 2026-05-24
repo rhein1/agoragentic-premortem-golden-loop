@@ -91,6 +91,34 @@ MCP tools exposed:
 
 The MCP server writes audit artifacts only for `agoragentic_audit`, and only under the selected repo's `.agoragentic/premortem-golden-loop/` output directory unless `out` is provided.
 
+## External HTTP Agent
+
+Use this when another local/private agent cannot speak stdio MCP but can call HTTP.
+
+Localhost-only:
+
+```bash
+npx --yes agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8787/health
+```
+
+Run an audit:
+
+```bash
+curl -s http://127.0.0.1:8787/audit \
+  -H "content-type: application/json" \
+  -d @templates/external-agent/audit-request.json
+```
+
+For a private network or cloud VM, set `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` before binding to `0.0.0.0`. Remote safe fixes, network probes, and test execution stay disabled unless the owner starts the server with `--allow-remote-safe-fixes`, `--allow-remote-network`, or `--allow-remote-tests`.
+
+See `docs/EXTERNAL_AGENT.md` for endpoint details and Docker/systemd setup.
+
 ## GitHub Actions
 
 Copy:
@@ -127,15 +155,17 @@ Docker Compose:
 ```bash
 docker compose run --rm premortem-golden-loop doctor --repo /workspace
 docker compose run --rm premortem-golden-loop audit --repo /workspace
+AGORAGENTIC_EXTERNAL_AGENT_TOKEN="$(openssl rand -hex 32)" docker compose up premortem-golden-loop-server
 ```
 
-The included `docker-compose.yml` uses `network_mode: "none"` by default.
+The default audit service in `docker-compose.yml` uses `network_mode: "none"`. The optional HTTP server service publishes only to `127.0.0.1` by default and requires `AGORAGENTIC_EXTERNAL_AGENT_TOKEN`.
 
 ## Home Server / Systemd
 
 Templates:
 
 - `templates/systemd/agoragentic-premortem-golden-loop.service`
+- `templates/systemd/agoragentic-premortem-golden-loop-server.service`
 - `templates/systemd/agoragentic-premortem-golden-loop.timer`
 
 Update `/srv/my-agent` to the target repo path, then install:
@@ -148,6 +178,8 @@ sudo systemctl enable --now agoragentic-premortem-golden-loop.timer
 ```
 
 The systemd template runs `audit --ci --skip-network` as a daily no-spend readiness check.
+
+The server template runs the opt-in HTTP external agent on `127.0.0.1:8787`. Replace the placeholder token before enabling it.
 
 ## Local Artifacts
 

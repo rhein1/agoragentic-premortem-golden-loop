@@ -1,0 +1,18 @@
+[Unit]
+Description=Agoragentic Premortem Golden Loop external HTTP agent
+Documentation=https://github.com/rhein1/agoragentic-premortem-golden-loop
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/my-agent
+Environment=AGORAGENTIC_NO_SPEND=1
+Environment=AGORAGENTIC_ALLOW_REAL_SPEND=0
+Environment=AGORAGENTIC_ALLOW_NETWORK_CANARIES=0
+Environment=AGORAGENTIC_EXTERNAL_AGENT_TOKEN=replace-with-a-long-random-token
+ExecStart=/usr/bin/npx --yes agoragentic-premortem-golden-loop serve --repo /srv/my-agent --host 127.0.0.1 --port 8787
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

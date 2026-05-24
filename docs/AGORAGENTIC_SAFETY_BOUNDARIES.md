@@ -31,6 +31,8 @@ It does not overwrite existing files.
 
 The `audit` command may also write local report and handoff artifacts under `.agoragentic/premortem-golden-loop/`, including `audit-guide.html`, `audit-summary.md`, `ide-fix-prompt.md`, and `agent-handoff.md`.
 
+The `serve` command starts an opt-in HTTP external-agent server. It binds to `127.0.0.1` by default. Binding to a non-loopback host requires `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` or `--external-agent-token`.
+
 ## What Self-Heal Will Not Do
 
 - It will not edit application source code.
@@ -42,6 +44,7 @@ The `audit` command may also write local report and handoff artifacts under `.ag
 - It will not run paid `execute()` calls.
 - It will not transfer USDC or sign wallet payments.
 - It will not publish to Agent OS, a marketplace, npm, PyPI, or GitHub.
+- The HTTP server will not permit remote safe fixes, remote network probes, or remote test execution unless the owner starts it with the corresponding explicit flag.
 
 ## Optional Network Canaries
 

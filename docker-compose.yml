@@ -6,3 +6,14 @@ services:
     volumes:
       - ${AGORAGENTIC_REPO:-.}:/workspace
     command: ["audit", "--repo", "/workspace"]
+
+  premortem-golden-loop-server:
+    build: .
+    working_dir: /workspace
+    ports:
+      - "127.0.0.1:${AGORAGENTIC_EXTERNAL_AGENT_PORT:-8787}:8787"
+    environment:
+      AGORAGENTIC_EXTERNAL_AGENT_TOKEN: ${AGORAGENTIC_EXTERNAL_AGENT_TOKEN:?Set AGORAGENTIC_EXTERNAL_AGENT_TOKEN before starting the external agent server}
+    volumes:
+      - ${AGORAGENTIC_REPO:-.}:/workspace
+    command: ["serve", "--repo", "/workspace", "--host", "0.0.0.0", "--port", "8787"]

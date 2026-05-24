@@ -1,0 +1,6 @@
+{
+  "plan": "Release a local-first OSS agent.",
+  "audience": "AI agent builders preparing public releases.",
+  "success": "Builders run the audit, fix at least one blocker, and keep a local receipt.",
+  "writeArtifacts": true
+}

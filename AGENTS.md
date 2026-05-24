@@ -15,8 +15,9 @@ This repository is a free, local-first OSS agent for premortems, no-spend Golden
 
 - Keep the package dependency-free unless there is a clear release-blocking reason.
 - Keep Node.js support at `>=18`.
-- Preserve the command surface: `doctor`, `audit`, `session`, `run`, `heal`, `premortem`, and `golden-loop`.
+- Preserve the command surface: `doctor`, `audit`, `session`, `run`, `heal`, `premortem`, `golden-loop`, and the opt-in `serve` external-agent surface.
 - Keep the MCP stdio server dependency-free and bound to the same local/no-spend safety rules.
+- Keep the external HTTP server dependency-free, token-gated for non-loopback binding, and bound to the same local/no-spend safety rules.
 - Self-heal must remain additive. It may create missing docs, metadata, env examples, or CI scaffolds only after `--apply-safe-fixes`.
 - Self-heal must not overwrite files, delete files, edit application source code, rotate secrets, install dependencies, deploy, publish, or spend money.
 - Secret scanning must never echo detected secret values.
@@ -31,4 +32,5 @@ npm test
 node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
 node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --plan "Release this local-first OSS premortem and Golden Loop readiness agent with CLI, MCP, Docker, CI, examples, and IDE integration templates." --audience "AI agent builders preparing public releases" --success "builders run the audit through their IDE or local server, fix at least one blocker, and keep a local receipt" --ci --skip-network
 node --check bin/agoragentic-premortem-golden-loop-mcp.mjs
+node --check bin/agoragentic-premortem-golden-loop-server.mjs
 ```
