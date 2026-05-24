@@ -1,6 +1,6 @@
 {
   "name": "agoragentic-premortem-golden-loop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Free local OSS premortem, self-heal, and no-spend Golden Loop readiness CLI for plans, launches, and installable AI agent repositories.",
   "type": "module",
   "license": "MIT",

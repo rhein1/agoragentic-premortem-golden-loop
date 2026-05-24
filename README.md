@@ -134,6 +134,7 @@ Artifacts are written to:
 - repo premortem: local release and operating risk scan
 - no-spend Golden Loop: install/config/discovery/proof/approval/test readiness
 - premortem session: full HTML report when plan, audience, and success context are available
+- launch gate: source files read, assumptions refused, risky actions blocked, and the exact IDE prompt handed off
 - self-heal plan: safe additive implementation plan
 - IDE handoff: prompts another local agent can use to fix Golden Loop readiness without destructive changes
 
@@ -142,7 +143,7 @@ By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it m
 ## Integrations
 
 - CLI: `npx agoragentic-premortem-golden-loop audit --repo .`
-- MCP: `npx --yes --package agoragentic-premortem-golden-loop agoragentic-premortem-golden-loop-mcp`
+- MCP: `npx --yes --package=agoragentic-premortem-golden-loop -- agoragentic-premortem-golden-loop-mcp`
 - GitHub Actions: copy [`templates/github-actions/agoragentic-premortem-golden-loop.yml`](./templates/github-actions/agoragentic-premortem-golden-loop.yml)
 - Docker/home server: use [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml), or [`templates/systemd/`](./templates/systemd/)
 - IDE agents: copy the relevant template from [`templates/`](./templates/) for Cursor, Claude Code, Codex, Cline, Windsurf, or Antigravity

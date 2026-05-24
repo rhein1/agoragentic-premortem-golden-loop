@@ -324,7 +324,8 @@ export async function runPremortem(options = {}) {
         action: risk.action
       })),
       next_actions: nextActionsFromRisks(risks),
-      no_spend: true
+      no_spend: true,
+      source_files_read: []
     };
   }
 
@@ -498,6 +499,7 @@ export async function runPremortem(options = {}) {
     checks,
     next_actions: nextActionsFromRisks(risks),
     file_count_scanned: files.length,
+    source_files_read: relFiles.slice(0, 120),
     no_spend: true,
     boundary: {
       credentials_required: false,
@@ -967,6 +969,7 @@ export async function runAudit(options = {}) {
     }
   };
   audit.handoff = buildIdeHandoff(audit);
+  audit.launch_gate = buildLaunchGate(audit);
   return audit;
 }
 
@@ -1252,6 +1255,44 @@ function buildIdeHandoff(audit) {
       'Rerun audit with --ci and keep the resulting local receipt.'
     ],
     rerun_command: 'npx agoragentic-premortem-golden-loop audit --repo . --ci --run-tests'
+  };
+}
+
+function buildLaunchGate(audit) {
+  const effective = audit.effective_audit;
+  const sourceFiles = effective.premortem.source_files_read || [];
+  const context = audit.premortem_session.context || {};
+  const missing = context.missing || [];
+  const assumptionsRefused = audit.premortem_session.status === 'needs_context'
+    ? [`Refused to invent missing premortem context: ${missing.join(', ') || 'unspecified context'}.`]
+    : [
+        'Did not invent private team politics, customer urgency, production runtime state, credentials, or paid execution proof beyond supplied plan and local repo context.',
+        'Plan, audience, and success criteria were supplied or inferred from local workspace context before running the full premortem.'
+      ];
+  const riskyActionsBlocked = [
+    'Delete files',
+    'Overwrite existing files',
+    'Rewrite application source code without owner-reviewed patch approval',
+    'Rotate secrets',
+    'Install dependencies',
+    'Deploy or publish',
+    'Call paid execute()',
+    'Sign wallet messages or transfer USDC',
+    'Upload repository contents by default'
+  ];
+
+  return {
+    source_files_read: {
+      count: effective.premortem.file_count_scanned || sourceFiles.length,
+      files: sourceFiles,
+      truncated: sourceFiles.length >= 120
+    },
+    assumptions_refused: assumptionsRefused,
+    risky_actions_blocked: riskyActionsBlocked,
+    ide_prompt_handed_off: {
+      artifact: 'ide-fix-prompt.md',
+      exact_prompt: renderIdeFixPrompt(audit, 'local IDE agent')
+    }
   };
 }
 
@@ -2263,6 +2304,16 @@ export function renderIdeFixPrompt(audit, audience = 'local IDE agent') {
 
 export function renderAuditGuideHtml(audit) {
   const effective = audit.effective_audit;
+  const launchGate = audit.launch_gate || buildLaunchGate(audit);
+  const sourceFileList = launchGate.source_files_read.files.length
+    ? launchGate.source_files_read.files.slice(0, 24).map((file) => `<li><code>${escapeHtml(file)}</code></li>`).join('')
+    : '<li>No source files were readable from this repository path.</li>';
+  const sourceFileNote = launchGate.source_files_read.truncated
+    ? '<p class="note">Showing the first 24 files in the HTML guide. The local JSON includes the first 120 file paths.</p>'
+    : '<p class="note">Showing local file paths only; file contents are not embedded in this row.</p>';
+  const assumptionsRefused = launchGate.assumptions_refused.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const riskyActionsBlocked = launchGate.risky_actions_blocked.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const exactPrompt = escapeHtml(launchGate.ide_prompt_handed_off.exact_prompt);
   const riskCards = effective.premortem.risks.length
     ? effective.premortem.risks.map((risk) => `
       <article class="card ${escapeHtml(risk.severity)}">
@@ -2328,6 +2379,15 @@ export function renderAuditGuideHtml(audit) {
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 28px; }
     .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .panel, .card { background: #111A2E; border: 1px solid #263044; border-radius: 8px; padding: 18px; }
+    .launch-gate { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .gate-cell { background: #131D30; border: 1px solid #263044; border-radius: 8px; padding: 14px; min-width: 0; }
+    .gate-cell h2 { font-size: 16px; margin-bottom: 8px; }
+    .gate-cell ul { margin: 10px 0 0; padding-left: 20px; }
+    .gate-cell li { font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+    .note { color: #94A3B8; font-size: 12px; margin: 10px 0 0; }
+    details { margin-top: 10px; }
+    summary { cursor: pointer; color: #06B6D4; font-weight: 700; font-size: 13px; }
+    pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0A1019; border: 1px solid #263044; border-radius: 6px; padding: 12px; color: #E2E8F0; font-size: 12px; line-height: 1.45; }
     .wide { grid-column: 1 / -1; }
     .card { border-top: 4px solid #06B6D4; }
     .card.fail, .card.blocker { border-top-color: #E8613A; }
@@ -2337,7 +2397,8 @@ export function renderAuditGuideHtml(audit) {
     .boundary { border-left: 4px solid #E8613A; }
     code { color: #E2E8F0; background: #0A1019; border: 1px solid #263044; border-radius: 6px; padding: 2px 6px; }
     footer { margin-top: 34px; color: #94A3B8; font-size: 13px; }
-    @media (max-width: 860px) { .grid, .two { grid-template-columns: 1fr; } main { padding: 28px 14px 40px; } }
+    @media (max-width: 1040px) { .launch-gate { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 860px) { .grid, .two, .launch-gate { grid-template-columns: 1fr; } main { padding: 28px 14px 40px; } }
   </style>
 </head>
 <body>
@@ -2350,6 +2411,38 @@ export function renderAuditGuideHtml(audit) {
         <span class="pill">score ${effective.premortem.summary.score}</span>
         <span class="pill">${effective.golden_loop.pass ? 'Golden Loop pass' : 'Golden Loop needs fixes'}</span>
         <span class="pill">no-spend local receipt</span>
+      </div>
+    </section>
+
+    <section class="launch-gate" aria-label="Launch Gate">
+      <div class="gate-cell">
+        <div class="kicker">launch gate</div>
+        <h2>Source Files Read</h2>
+        <p><strong>${launchGate.source_files_read.count}</strong> local file(s) discovered for audit.</p>
+        <details>
+          <summary>Show sampled file paths</summary>
+          <ul>${sourceFileList}</ul>
+        </details>
+        ${sourceFileNote}
+      </div>
+      <div class="gate-cell">
+        <div class="kicker">launch gate</div>
+        <h2>Assumptions Refused</h2>
+        <ul>${assumptionsRefused}</ul>
+      </div>
+      <div class="gate-cell">
+        <div class="kicker">launch gate</div>
+        <h2>Risky Action Blocked</h2>
+        <ul>${riskyActionsBlocked}</ul>
+      </div>
+      <div class="gate-cell">
+        <div class="kicker">launch gate</div>
+        <h2>Exact IDE Prompt Handed Off</h2>
+        <p>Artifact: <code>${escapeHtml(launchGate.ide_prompt_handed_off.artifact)}</code></p>
+        <details>
+          <summary>Show exact prompt</summary>
+          <pre>${exactPrompt}</pre>
+        </details>
       </div>
     </section>
 
