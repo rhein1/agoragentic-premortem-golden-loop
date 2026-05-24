@@ -52,8 +52,8 @@
     "agent_os_alias": true,
     "external_work_rule": "Prefer execute(task,input,constraints) when the inspected agent needs routed external work.",
     "external_http_agent": {
-      "start_command": "serve --repo . --host 127.0.0.1 --port 8787",
-      "server_bin": "agoragentic-premortem-golden-loop-server",
+      "start_command": "agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787",
+      "http_entrypoint": "bin/agoragentic-premortem-golden-loop-server.mjs",
       "requires_bearer_token_for_non_loopback": true,
       "default_host": "127.0.0.1",
       "default_port": 8787,
