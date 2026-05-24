@@ -968,6 +968,7 @@ export async function runAudit(options = {}) {
       self_heal_deletes_files: false
     }
   };
+  audit.closure_loop = await buildClosureLoop(audit, null);
   audit.handoff = buildIdeHandoff(audit);
   audit.launch_gate = buildLaunchGate(audit);
   return audit;
@@ -1196,6 +1197,8 @@ function buildAgentDescriptor(projectName) {
     artifacts: [
       '.agoragentic/premortem-golden-loop/audit-guide.html',
       '.agoragentic/premortem-golden-loop/audit-summary.md',
+      '.agoragentic/premortem-golden-loop/closure-loop.json',
+      '.agoragentic/premortem-golden-loop/closure-loop.md',
       '.agoragentic/premortem-golden-loop/ide-fix-prompt.md',
       '.agoragentic/premortem-golden-loop/premortem.json',
       '.agoragentic/premortem-golden-loop/golden-loop.json',
@@ -1222,6 +1225,7 @@ function buildIdeHandoff(audit) {
     purpose: 'Use these findings to improve Golden Loop readiness without destructive changes.',
     files_to_read_first: [
       '.agoragentic/premortem-golden-loop/audit-summary.md',
+      '.agoragentic/premortem-golden-loop/closure-loop.md',
       '.agoragentic/premortem-golden-loop/healing-plan.md',
       '.agoragentic/premortem-golden-loop/golden-loop.md',
       '.agoragentic/premortem-golden-loop/premortem.md',
@@ -1252,7 +1256,8 @@ function buildIdeHandoff(audit) {
       'Apply only safe missing scaffolds with --apply-safe-fixes, or implement equivalent additions manually.',
       'Handle manual owner actions separately, especially license choice and secret rotation.',
       'Run the repo test suite only when it is safe in no-spend mode.',
-      'Rerun audit with --ci and keep the resulting local receipt.'
+      'Rerun audit with --ci and keep the resulting local receipt.',
+      'Check closure-loop.md to confirm which prior recommendations are now applied, verified resolved, or still open.'
     ],
     rerun_command: 'npx agoragentic-premortem-golden-loop audit --repo . --ci --run-tests'
   };
@@ -1294,6 +1299,293 @@ function buildLaunchGate(audit) {
       exact_prompt: renderIdeFixPrompt(audit, 'local IDE agent')
     }
   };
+}
+
+async function buildClosureLoop(audit, previousAudit = null) {
+  const generatedAt = audit.generated_at || nowIso();
+  const root = audit.root;
+  const effective = audit.effective_audit;
+  const currentRisks = new Map((effective.premortem.risks || []).map((risk) => [risk.id, risk]));
+  const currentManual = new Map((audit.healing.plan.manual || []).map((item) => [item.id, item]));
+  const applied = new Map((audit.healing.applied || []).map((item) => [safeCreateKey(item.target || item.id), item]));
+  const items = new Map();
+
+  const addOrUpdate = (item) => {
+    const existing = items.get(item.id);
+    if (!existing) {
+      items.set(item.id, item);
+      return;
+    }
+    items.set(item.id, {
+      ...existing,
+      ...item,
+      first_seen_at: existing.first_seen_at || item.first_seen_at,
+      carried_forward: existing.carried_forward || item.carried_forward
+    });
+  };
+
+  for (const item of previousClosureItems(previousAudit)) {
+    const evaluated = await evaluatePriorClosureItem(root, item, currentRisks, currentManual, generatedAt);
+    addOrUpdate(evaluated);
+  }
+
+  for (const risk of effective.premortem.risks || []) {
+    addOrUpdate({
+      id: riskKey(risk.id),
+      type: 'risk_action',
+      status: 'open',
+      title: risk.title,
+      risk_id: risk.id,
+      severity: risk.severity,
+      action: risk.action,
+      evidence: ['Risk is present in the current premortem scan.'],
+      first_seen_at: generatedAt,
+      last_checked_at: generatedAt,
+      carried_forward: false
+    });
+  }
+
+  for (const action of audit.healing.plan.actions || []) {
+    if (action.type !== 'create_file') continue;
+    const key = safeCreateKey(action.target);
+    const appliedItem = applied.get(key);
+    addOrUpdate({
+      id: key,
+      type: 'safe_create',
+      status: appliedItem?.status === 'created'
+        ? 'applied_this_run'
+        : appliedItem?.status === 'blocked'
+          ? 'blocked'
+          : await fileExistsInRoot(root, action.target)
+            ? 'verified_present'
+            : 'open',
+      title: action.title,
+      target: action.target,
+      action: action.reason,
+      evidence: closureEvidenceForSafeCreate(appliedItem, action.target),
+      first_seen_at: generatedAt,
+      last_checked_at: generatedAt,
+      carried_forward: false
+    });
+  }
+
+  for (const manual of audit.healing.plan.manual || []) {
+    addOrUpdate({
+      id: manualKey(manual.id),
+      type: 'manual_action',
+      status: 'manual_open',
+      title: manual.title,
+      action: manual.action,
+      evidence: ['Manual owner action is still present in the current healing plan.'],
+      first_seen_at: generatedAt,
+      last_checked_at: generatedAt,
+      carried_forward: false
+    });
+  }
+
+  for (const item of audit.healing.applied || []) {
+    const key = safeCreateKey(item.target || item.id);
+    addOrUpdate({
+      id: key,
+      type: 'safe_create',
+      status: item.status === 'created' ? 'applied_this_run' : item.status,
+      title: item.title || item.id || item.target,
+      target: item.target || null,
+      action: item.reason || 'Safe additive scaffold action from this run.',
+      evidence: closureEvidenceForSafeCreate(item, item.target),
+      first_seen_at: generatedAt,
+      last_checked_at: generatedAt,
+      carried_forward: false
+    });
+  }
+
+  const ordered = [...items.values()].sort((a, b) => closureStatusRank(a.status) - closureStatusRank(b.status) || a.id.localeCompare(b.id));
+  const summary = summarizeClosure(ordered);
+  return {
+    schema: 'agoragentic.premortem-golden-loop.closure-loop.v1',
+    generated_at: generatedAt,
+    root,
+    previous_audit_found: Boolean(previousAudit),
+    previous_generated_at: previousAudit?.generated_at || null,
+    previous_receipt_id: previousAudit?.effective_audit?.receipt?.receipt_id || null,
+    current_receipt_id: effective.receipt.receipt_id,
+    summary,
+    items: ordered,
+    how_to_close_loop: [
+      'Apply approved safe fixes or equivalent owner-reviewed changes.',
+      'Rerun audit against the same output directory so prior local artifacts can be compared with the current repo state.',
+      'Review closure-loop.md or closure-loop.json for applied, verified resolved, blocked, and still-open items.'
+    ],
+    boundary: {
+      local_only: true,
+      compared_previous_local_artifact: Boolean(previousAudit),
+      network_calls: false,
+      repo_contents_uploaded: false,
+      destructive_changes: false,
+      source_rewrites: false,
+      paid_execution: false
+    }
+  };
+}
+
+function previousClosureItems(previousAudit) {
+  if (!previousAudit) return [];
+  if (Array.isArray(previousAudit.closure_loop?.items)) return previousAudit.closure_loop.items;
+
+  const items = [];
+  for (const action of previousAudit.handoff?.next_actions || []) {
+    items.push({
+      id: riskKey(action.risk_id || action.action),
+      type: 'risk_action',
+      title: action.action,
+      risk_id: action.risk_id,
+      severity: action.severity,
+      action: action.action,
+      first_seen_at: previousAudit.generated_at
+    });
+  }
+  for (const action of previousAudit.handoff?.safe_additive_implementations || []) {
+    items.push({
+      id: safeCreateKey(action.target || action.id),
+      type: 'safe_create',
+      title: action.target || action.id,
+      target: action.target,
+      action: action.reason,
+      first_seen_at: previousAudit.generated_at
+    });
+  }
+  for (const action of previousAudit.handoff?.manual_owner_actions || []) {
+    items.push({
+      id: manualKey(action.id || action.title),
+      type: 'manual_action',
+      title: action.title,
+      action: action.action,
+      first_seen_at: previousAudit.generated_at
+    });
+  }
+  return items;
+}
+
+async function evaluatePriorClosureItem(root, item, currentRisks, currentManual, generatedAt) {
+  const base = {
+    ...item,
+    first_seen_at: item.first_seen_at || generatedAt,
+    last_checked_at: generatedAt,
+    carried_forward: true
+  };
+
+  if (item.type === 'risk_action') {
+    const risk = currentRisks.get(item.risk_id);
+    return risk
+      ? {
+          ...base,
+          status: 'open',
+          title: risk.title || item.title,
+          severity: risk.severity || item.severity,
+          action: risk.action || item.action,
+          evidence: ['Carried forward: risk still appears in the current premortem scan.']
+        }
+      : {
+          ...base,
+          status: 'verified_resolved',
+          evidence: ['Prior risk no longer appears in the current premortem scan.']
+        };
+  }
+
+  if (item.type === 'safe_create') {
+    const present = item.target ? await fileExistsInRoot(root, item.target) : false;
+    return {
+      ...base,
+      status: present ? 'verified_present' : 'open',
+      evidence: present
+        ? [`Verified ${item.target} exists in the current repo.`]
+        : [`${item.target || item.id} is not present yet.`]
+    };
+  }
+
+  if (item.type === 'manual_action') {
+    const manualId = item.id?.replace(/^manual:/, '');
+    const stillOpen = currentManual.has(manualId);
+    return {
+      ...base,
+      status: stillOpen ? 'manual_open' : 'verified_resolved',
+      evidence: stillOpen
+        ? ['Manual owner action is still present in the current healing plan.']
+        : ['Manual owner action no longer appears in the current healing plan.']
+    };
+  }
+
+  return {
+    ...base,
+    status: item.status || 'open',
+    evidence: item.evidence || ['Prior closure item carried forward.']
+  };
+}
+
+async function fileExistsInRoot(root, relPath) {
+  if (!relPath) return false;
+  const full = path.resolve(root, relPath);
+  if (!isInside(root, full)) return false;
+  return exists(full);
+}
+
+function riskKey(id) {
+  return `risk:${id || 'unknown'}`;
+}
+
+function safeCreateKey(target) {
+  return `safe_create:${slash(String(target || 'unknown'))}`;
+}
+
+function manualKey(id) {
+  return `manual:${id || 'unknown'}`;
+}
+
+function closureEvidenceForSafeCreate(appliedItem, target) {
+  if (!appliedItem) return [`${target} is proposed but not applied by this run.`];
+  if (appliedItem.status === 'created') return [`Created ${target} during this run.`];
+  if (appliedItem.status === 'blocked') return [`Blocked ${target}: ${appliedItem.reason || 'safety boundary prevented the action.'}`];
+  if (appliedItem.status === 'skipped_existing') return [`Skipped ${target} because it already existed.`];
+  return [`${target || appliedItem.id} status: ${appliedItem.status}.`];
+}
+
+function summarizeClosure(items) {
+  const count = (status) => items.filter((item) => item.status === status).length;
+  const closed = ['applied_this_run', 'verified_resolved', 'verified_present', 'already_present', 'skipped_existing']
+    .reduce((total, status) => total + count(status), 0);
+  const stillOpen = count('open') + count('manual_open');
+  return {
+    total: items.length,
+    closed,
+    applied_this_run: count('applied_this_run'),
+    verified_resolved: count('verified_resolved'),
+    verified_present: count('verified_present'),
+    still_open: stillOpen,
+    open: count('open'),
+    manual_open: count('manual_open'),
+    blocked: count('blocked'),
+    carried_forward: items.filter((item) => item.carried_forward).length,
+    new_this_run: items.filter((item) => !item.carried_forward).length
+  };
+}
+
+function closureStatusRank(status) {
+  return {
+    blocked: 0,
+    open: 1,
+    manual_open: 2,
+    applied_this_run: 3,
+    verified_resolved: 4,
+    verified_present: 5,
+    already_present: 6,
+    skipped_existing: 7
+  }[status] ?? 8;
+}
+
+function itemLabel(item) {
+  if (item.target) return item.target;
+  if (item.risk_id) return item.risk_id;
+  return item.title || item.id;
 }
 
 function renderGoalsDoc({ projectName }) {
@@ -1531,6 +1823,45 @@ export function renderHealingPlanMarkdown(report) {
   }
 
   lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderClosureLoopMarkdown(closure) {
+  const summary = closure.summary || summarizeClosure(closure.items || []);
+  const lines = [
+    '# Agoragentic Closure Loop',
+    '',
+    `Generated: ${closure.generated_at}`,
+    `Repository: ${closure.root}`,
+    `Current receipt: ${closure.current_receipt_id}`,
+    `Previous receipt: ${closure.previous_receipt_id || 'none'}`,
+    '',
+    '## Summary',
+    '',
+    `- Closed: ${summary.closed}`,
+    `- Applied this run: ${summary.applied_this_run}`,
+    `- Verified resolved: ${summary.verified_resolved}`,
+    `- Verified present: ${summary.verified_present}`,
+    `- Still open: ${summary.still_open}`,
+    `- Blocked: ${summary.blocked}`,
+    '',
+    '## Fix Closure Table',
+    '',
+    '| Status | Type | Item | Evidence |',
+    '|---|---|---|---|'
+  ];
+
+  if (!closure.items?.length) {
+    lines.push('| clear | none | No recommended fixes are open | Keep the local receipt with the release artifacts |');
+  } else {
+    for (const item of closure.items) {
+      lines.push(`| ${escapeMd(item.status)} | ${escapeMd(item.type)} | ${escapeMd(itemLabel(item))} | ${escapeMd((item.evidence || []).join('; '))} |`);
+    }
+  }
+
+  lines.push('', '## How To Close The Loop', '');
+  for (const step of closure.how_to_close_loop || []) lines.push(`- ${step}`);
+  lines.push('', 'Boundary: local-only comparison of current repo state and prior local audit artifacts. No network calls, no repository upload, no deletes, no source rewrites, and no paid execution.', '');
   return `${lines.join('\n')}\n`;
 }
 
@@ -2049,6 +2380,11 @@ export async function writeAuditArtifacts(outDir, audit) {
   const guidePath = path.join(outDir, 'audit-guide.html');
   const idePromptPath = path.join(outDir, 'ide-fix-prompt.md');
   const agentHandoffPath = path.join(outDir, 'agent-handoff.md');
+  const previousAudit = await readJson(path.join(outDir, 'audit.json'));
+
+  audit.closure_loop = await buildClosureLoop(audit, previousAudit);
+  audit.handoff = buildIdeHandoff(audit);
+  audit.launch_gate = buildLaunchGate(audit);
 
   await writeJson(path.join(outDir, 'audit.json'), audit);
   await writeText(path.join(outDir, 'audit-summary.md'), renderAuditSummaryMarkdown(audit));
@@ -2065,6 +2401,8 @@ export async function writeAuditArtifacts(outDir, audit) {
   await writeText(path.join(outDir, 'summary.md'), renderSummaryMarkdown(audit.effective_audit));
   await writeJson(path.join(outDir, 'healing-plan.json'), audit.healing);
   await writeText(path.join(outDir, 'healing-plan.md'), renderHealingPlanMarkdown(audit.healing));
+  await writeJson(path.join(outDir, 'closure-loop.json'), audit.closure_loop);
+  await writeText(path.join(outDir, 'closure-loop.md'), renderClosureLoopMarkdown(audit.closure_loop));
   if (audit.healing.after) {
     await writeJson(path.join(outDir, 'healing-recheck.json'), audit.healing.after);
   }
@@ -2083,6 +2421,8 @@ export async function writeAuditArtifacts(outDir, audit) {
     audit_json: path.join(outDir, 'audit.json'),
     audit_guide: guidePath,
     audit_summary: path.join(outDir, 'audit-summary.md'),
+    closure_loop: path.join(outDir, 'closure-loop.json'),
+    closure_loop_summary: path.join(outDir, 'closure-loop.md'),
     ide_fix_prompt: idePromptPath,
     agent_handoff: agentHandoffPath,
     local_receipt: path.join(outDir, 'local-receipt.json')
@@ -2210,6 +2550,15 @@ export function renderAuditSummaryMarkdown(audit) {
     '- No paid execution, wallet signing, deployment, publishing, deletion, or overwrite',
     '- Safe fixes create missing scaffolds only when `--apply-safe-fixes` is passed',
     '',
+    '## Closure Loop',
+    '',
+    `Previous audit found: ${audit.closure_loop?.previous_audit_found ? 'yes' : 'no'}`,
+    `Closed recommendations: ${audit.closure_loop?.summary?.closed ?? 0}`,
+    `Applied this run: ${audit.closure_loop?.summary?.applied_this_run ?? 0}`,
+    `Still open: ${audit.closure_loop?.summary?.still_open ?? 0}`,
+    '',
+    'See `closure-loop.md` and `closure-loop.json` for the full local fix-tracking ledger.',
+    '',
     '## Premortem Session',
     ''
   ];
@@ -2260,6 +2609,15 @@ export function renderIdeFixPrompt(audit, audience = 'local IDE agent') {
   lines.push(`- Golden Loop failures: ${handoff.current_findings.golden_loop_failures}`);
   lines.push(`- Golden Loop warnings: ${handoff.current_findings.golden_loop_warnings}`);
   lines.push(`- Premortem context status: ${handoff.current_findings.premortem_context_status}`);
+
+  if (audit.closure_loop) {
+    lines.push('', '## Closure Loop', '');
+    lines.push(`- Previous audit found: ${audit.closure_loop.previous_audit_found ? 'yes' : 'no'}`);
+    lines.push(`- Closed recommendations: ${audit.closure_loop.summary.closed}`);
+    lines.push(`- Applied this run: ${audit.closure_loop.summary.applied_this_run}`);
+    lines.push(`- Still open: ${audit.closure_loop.summary.still_open}`);
+    lines.push('- Read `closure-loop.md` before claiming a recommendation is fixed.');
+  }
 
   lines.push('', '## Read These Local Artifacts First', '');
   for (const file of handoff.files_to_read_first) lines.push(`- ${file}`);
@@ -2314,6 +2672,21 @@ export function renderAuditGuideHtml(audit) {
   const assumptionsRefused = launchGate.assumptions_refused.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const riskyActionsBlocked = launchGate.risky_actions_blocked.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const exactPrompt = escapeHtml(launchGate.ide_prompt_handed_off.exact_prompt);
+  const closure = audit.closure_loop || {
+    previous_audit_found: false,
+    summary: summarizeClosure([]),
+    items: []
+  };
+  const closureItems = closure.items.length
+    ? closure.items.slice(0, 12).map((item) => `
+      <tr>
+        <td><span class="status ${escapeHtml(item.status)}">${escapeHtml(item.status.replace(/_/g, ' '))}</span></td>
+        <td>${escapeHtml(item.type.replace(/_/g, ' '))}</td>
+        <td>${escapeHtml(itemLabel(item))}</td>
+        <td>${escapeHtml((item.evidence || []).join('; '))}</td>
+      </tr>
+    `).join('')
+    : '<tr><td><span class="status verified_present">clear</span></td><td>none</td><td>No open recommendations</td><td>Keep the local receipt with the release artifacts.</td></tr>';
   const riskCards = effective.premortem.risks.length
     ? effective.premortem.risks.map((risk) => `
       <article class="card ${escapeHtml(risk.severity)}">
@@ -2387,6 +2760,13 @@ export function renderAuditGuideHtml(audit) {
     .note { color: #94A3B8; font-size: 12px; margin: 10px 0 0; }
     details { margin-top: 10px; }
     summary { cursor: pointer; color: #06B6D4; font-weight: 700; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #263044; padding: 10px 8px; text-align: left; vertical-align: top; color: #C9D4EF; font-size: 13px; }
+    th { color: #E2E8F0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .status { display: inline-block; border-radius: 999px; border: 1px solid #3B465C; padding: 4px 8px; background: #0A1019; color: #E2E8F0; white-space: nowrap; }
+    .status.applied_this_run, .status.verified_resolved, .status.verified_present, .status.already_present, .status.skipped_existing { border-color: #22C55E; color: #BBF7D0; }
+    .status.open, .status.manual_open { border-color: #F59E0B; color: #FDE68A; }
+    .status.blocked { border-color: #E8613A; color: #FEB2A0; }
     pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: #0A1019; border: 1px solid #263044; border-radius: 6px; padding: 12px; color: #E2E8F0; font-size: 12px; line-height: 1.45; }
     .wide { grid-column: 1 / -1; }
     .card { border-top: 4px solid #06B6D4; }
@@ -2443,6 +2823,33 @@ export function renderAuditGuideHtml(audit) {
           <summary>Show exact prompt</summary>
           <pre>${exactPrompt}</pre>
         </details>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="panel">
+        <div class="kicker">closure loop</div>
+        <h2>Fixes Applied Later</h2>
+        <ul>
+          <li>Previous audit found: <strong>${closure.previous_audit_found ? 'yes' : 'no'}</strong></li>
+          <li>Closed recommendations: <strong>${closure.summary.closed}</strong></li>
+          <li>Applied this run: <strong>${closure.summary.applied_this_run}</strong></li>
+          <li>Still open: <strong>${closure.summary.still_open}</strong></li>
+        </ul>
+        <p class="note">This is a local comparison against prior audit artifacts and the current repo state. It does not upload code or receipts.</p>
+      </div>
+      <div class="panel">
+        <div class="kicker">closure loop</div>
+        <h2>Loop Receipts</h2>
+        <p>Current: <code>${escapeHtml(closure.current_receipt_id || effective.receipt.receipt_id)}</code></p>
+        <p>Previous: <code>${escapeHtml(closure.previous_receipt_id || 'none')}</code></p>
+      </div>
+      <div class="panel wide">
+        <h2>Recommendation Closure Ledger</h2>
+        <table>
+          <thead><tr><th>Status</th><th>Type</th><th>Item</th><th>Evidence</th></tr></thead>
+          <tbody>${closureItems}</tbody>
+        </table>
       </div>
     </section>
 

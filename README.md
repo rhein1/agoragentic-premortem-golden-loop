@@ -54,6 +54,10 @@ node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
 # Apply only missing additive scaffolds after reviewing the audit.
 node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --apply-safe-fixes
 
+# Rerun the audit to close the loop. The report tracks what was applied,
+# what is now verified resolved, and what remains open.
+node bin/agoragentic-premortem-golden-loop.mjs audit --repo .
+
 # Full Klein-style premortem session for a plan, launch, or decision.
 node bin/agoragentic-premortem-golden-loop.mjs session \
   --plan "Launch an OSS AI agent that runs premortems and Golden Loop readiness checks" \
@@ -100,6 +104,8 @@ Artifacts are written to:
   audit.json
   audit-guide.html
   audit-summary.md
+  closure-loop.json
+  closure-loop.md
   ide-fix-prompt.md
   agent-handoff.md
   premortem.json
@@ -123,8 +129,9 @@ Artifacts are written to:
 4. If the business context is missing, rerun `audit` with `--plan`, `--audience`, and `--success` so the full premortem report can be generated.
 5. Give `ide-fix-prompt.md` or `agent-handoff.md` to a local IDE agent to implement safe fixes from the findings.
 6. Run `audit --repo . --apply-safe-fixes` only after reviewing the plan; this creates missing additive scaffolds and still does not delete or overwrite code.
-7. Rerun `audit --repo . --ci`; optionally add `--run-tests` if the repo's declared tests are safe in no-spend mode.
-8. Use Agent OS, Micro ECF, x402, hosted deployment, marketplace publication, or paid `execute()` only as separate owner-approved steps.
+7. Rerun `audit --repo .`; the closure loop compares the prior local audit with the current repo and writes `closure-loop.md` / `closure-loop.json`.
+8. Rerun `audit --repo . --ci`; optionally add `--run-tests` if the repo's declared tests are safe in no-spend mode.
+9. Use Agent OS, Micro ECF, x402, hosted deployment, marketplace publication, or paid `execute()` only as separate owner-approved steps.
 
 ## One-Command Audit Flow
 
@@ -135,6 +142,7 @@ Artifacts are written to:
 - no-spend Golden Loop: install/config/discovery/proof/approval/test readiness
 - premortem session: full HTML report when plan, audience, and success context are available
 - launch gate: source files read, assumptions refused, risky actions blocked, and the exact IDE prompt handed off
+- closure loop: tracks applied safe fixes, prior recommendations now verified resolved, and still-open actions across local reruns
 - self-heal plan: safe additive implementation plan
 - IDE handoff: prompts another local agent can use to fix Golden Loop readiness without destructive changes
 
@@ -155,6 +163,7 @@ See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) for exact setup steps.
 Sanitized sample artifacts:
 
 - [`examples/sample-audit-summary.md`](./examples/sample-audit-summary.md)
+- [`examples/sample-closure-loop.md`](./examples/sample-closure-loop.md)
 - [`examples/sample-ide-fix-prompt.md`](./examples/sample-ide-fix-prompt.md)
 - [`examples/sample-local-receipt.json`](./examples/sample-local-receipt.json)
 

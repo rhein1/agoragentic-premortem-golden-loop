@@ -163,12 +163,18 @@ describe('premortem golden loop core', () => {
     assert.ok(parsed.launch_gate.assumptions_refused.some((item) => /Did not invent private team politics/.test(item)));
     assert.ok(parsed.launch_gate.risky_actions_blocked.includes('Deploy or publish'));
     assert.match(parsed.launch_gate.ide_prompt_handed_off.exact_prompt, /# Agoragentic Handoff For local IDE agent/);
+    assert.equal(parsed.closure_loop.previous_audit_found, false);
+    assert.ok(parsed.closure_loop.summary.still_open >= 1);
     assert.equal((await exists(path.join(out, 'audit-guide.html'))), true);
     assert.equal((await exists(path.join(out, 'audit-summary.md'))), true);
+    assert.equal((await exists(path.join(out, 'closure-loop.json'))), true);
+    assert.equal((await exists(path.join(out, 'closure-loop.md'))), true);
     assert.equal((await exists(path.join(out, 'ide-fix-prompt.md'))), true);
     assert.equal((await exists(path.join(out, 'agent-handoff.md'))), true);
     const guideHtml = await fs.readFile(path.join(out, 'audit-guide.html'), 'utf8');
     assert.match(guideHtml, /Launch Gate/);
+    assert.match(guideHtml, /Closure Loop/);
+    assert.match(guideHtml, /Recommendation Closure Ledger/);
     assert.match(guideHtml, /Source Files Read/);
     assert.match(guideHtml, /Assumptions Refused/);
     assert.match(guideHtml, /Risky Action Blocked/);
@@ -176,6 +182,53 @@ describe('premortem golden loop core', () => {
     assert.match(guideHtml, /# Agoragentic Handoff For local IDE agent/);
     assert.equal((await exists(path.join(repo, 'agent.json'))), false);
     assert.equal((await exists(path.join(repo, 'docs', 'AGORAGENTIC_SAFETY_BOUNDARIES.md'))), false);
+  });
+
+  it('tracks whether recommended fixes were applied on later audit runs', async () => {
+    const repo = await makeFixture({
+      readme: 'Local OSS agent with install docs but missing discovery metadata and explicit safety workflows. Success: owners close the loop.',
+      agentJson: false,
+      envExample: false,
+      testScript: false
+    });
+    const out = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'pgl-closure-')), 'artifacts');
+    const baseArgs = [
+      'audit',
+      '--repo',
+      repo,
+      '--out',
+      out,
+      '--plan',
+      'Release a local-first OSS agent readiness checker.',
+      '--audience',
+      'open-source AI agent builders',
+      '--success',
+      'owners fix Golden Loop blockers before launch',
+      '--json'
+    ];
+
+    const first = spawnSync(process.execPath, [BIN, ...baseArgs], {
+      cwd: ROOT,
+      encoding: 'utf8'
+    });
+    assert.equal(first.status, 0, first.stderr);
+
+    const second = spawnSync(process.execPath, [BIN, ...baseArgs, '--apply-safe-fixes'], {
+      cwd: ROOT,
+      encoding: 'utf8'
+    });
+    assert.equal(second.status, 0, second.stderr);
+    const parsed = JSON.parse(second.stdout);
+    assert.equal(parsed.closure_loop.previous_audit_found, true);
+    assert.ok(parsed.closure_loop.summary.applied_this_run >= 1);
+    assert.ok(parsed.closure_loop.items.some((item) => item.target === 'agent.json' && item.status === 'applied_this_run'));
+
+    const closure = JSON.parse(await fs.readFile(path.join(out, 'closure-loop.json'), 'utf8'));
+    assert.equal(closure.previous_audit_found, true);
+    assert.ok(closure.items.some((item) => item.target === 'agent.json' && item.status === 'applied_this_run'));
+    const closureMd = await fs.readFile(path.join(out, 'closure-loop.md'), 'utf8');
+    assert.match(closureMd, /Fix Closure Table/);
+    assert.match(closureMd, /applied_this_run/);
   });
 
   it('audit can apply only safe additive scaffolds after explicit approval', async () => {
@@ -331,6 +384,7 @@ describe('premortem golden loop core', () => {
       'docs/INTEGRATIONS.md',
       'docs/RELEASE.md',
       'examples/sample-audit-summary.md',
+      'examples/sample-closure-loop.md',
       'examples/sample-ide-fix-prompt.md',
       'examples/sample-local-receipt.json',
       'Dockerfile',
