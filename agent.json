@@ -5,6 +5,7 @@
   "description": "Free local OSS premortem agent for plans and launches plus no-spend Golden Loop readiness checks and safe self-healing scaffolds for installable AI agent repositories.",
   "entrypoint": "bin/agoragentic-premortem-golden-loop.mjs",
   "mcp_entrypoint": "bin/agoragentic-premortem-golden-loop-mcp.mjs",
+  "mcp_command": "agoragentic-premortem-golden-loop mcp",
   "http_entrypoint": "bin/agoragentic-premortem-golden-loop-server.mjs",
   "runtime": {
     "language": "javascript",

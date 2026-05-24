@@ -41,6 +41,7 @@ Usage:
   agoragentic-premortem-golden-loop heal [options]
   agoragentic-premortem-golden-loop premortem [options]
   agoragentic-premortem-golden-loop golden-loop [options]
+  agoragentic-premortem-golden-loop mcp
   agoragentic-premortem-golden-loop serve [options]
 
 Options:
@@ -97,6 +98,11 @@ async function main(argv) {
     applySafeFixes: parsed.applySafeFixes,
     runTests: parsed.runTests
   };
+
+  if (command === 'mcp') {
+    await import('./agoragentic-premortem-golden-loop-mcp.mjs');
+    return;
+  }
 
   if (command === 'serve' || command === 'server') {
     const server = await startHttpServer({

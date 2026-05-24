@@ -54,7 +54,7 @@ All templates instruct the agent to run `doctor` first, then `audit`, then read 
 The package includes a dependency-free stdio MCP server:
 
 ```bash
-npx --yes --package agoragentic-premortem-golden-loop agoragentic-premortem-golden-loop-mcp
+npx --yes agoragentic-premortem-golden-loop mcp
 ```
 
 Claude Desktop-style config:
@@ -66,9 +66,8 @@ Claude Desktop-style config:
       "command": "npx",
       "args": [
         "--yes",
-        "--package",
         "agoragentic-premortem-golden-loop",
-        "agoragentic-premortem-golden-loop-mcp"
+        "mcp"
       ]
     }
   }

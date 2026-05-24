@@ -155,7 +155,7 @@ By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it m
 ## Integrations
 
 - CLI: `npx agoragentic-premortem-golden-loop audit --repo .`
-- MCP: `npx --yes --package=agoragentic-premortem-golden-loop -- agoragentic-premortem-golden-loop-mcp`
+- MCP: `npx --yes agoragentic-premortem-golden-loop mcp`
 - External HTTP agent: `npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787`
 - GitHub Actions: copy [`templates/github-actions/agoragentic-premortem-golden-loop.yml`](./templates/github-actions/agoragentic-premortem-golden-loop.yml)
 - Docker/home server: use [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml), or [`templates/systemd/`](./templates/systemd/)

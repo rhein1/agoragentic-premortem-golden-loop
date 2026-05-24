@@ -14,7 +14,7 @@ import {
 
 const SERVER_INFO = {
   name: 'agoragentic-premortem-golden-loop',
-  version: '0.1.5'
+  version: '0.1.6'
 };
 
 const TOOLS = [
