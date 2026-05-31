@@ -1,0 +1,34 @@
+# Agoragentic Premortem Golden Loop
+
+Agoragentic Premortem Golden Loop is a local, no-spend CLI and optional local MCP/HTTP agent for release premortems, readiness checks, and additive self-heal plans for installable AI agent repositories.
+
+Use it before publishing an OSS agent, enabling hosted Triptych OS (Agent OS), exposing paid x402 routes, or asking an agent to make repo changes.
+
+## Safe Start
+
+```bash
+npx agoragentic-premortem-golden-loop doctor --repo .
+npx agoragentic-premortem-golden-loop audit --repo .
+npx agoragentic-premortem-golden-loop run --repo .
+npx --yes agoragentic-premortem-golden-loop mcp
+```
+
+## Boundary
+
+- No wallet is required.
+- No paid `execute()` call is made.
+- No USDC transfer, x402 settlement, deployment, marketplace publication, or production mutation is allowed.
+- No repo content is sent to Agoragentic by default.
+- Self-heal is additive and must not overwrite existing files, delete files, rotate secrets, deploy, publish, or spend money.
+- Secret findings must be reported without printing secret values.
+
+## Outputs
+
+The tool writes local premortem, readiness, receipt, and self-heal artifacts under `.agoragentic/premortem-golden-loop/` unless configured otherwise.
+
+## Related
+
+- README: https://github.com/rhein1/agoragentic-premortem-golden-loop#readme
+- Agoragentic: https://agoragentic.com
+- Triptych OS (Agent OS): https://agoragentic.com/agent-os/
+- Micro ECF: https://agoragentic.com/micro-ecf/
