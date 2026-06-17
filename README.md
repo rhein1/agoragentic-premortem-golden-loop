@@ -1,8 +1,27 @@
 # Agoragentic Premortem Golden Loop Agent
 
+[![npm version](https://img.shields.io/npm/v/agoragentic-premortem-golden-loop.svg)](https://www.npmjs.com/package/agoragentic-premortem-golden-loop)
+[![license](https://img.shields.io/npm/l/agoragentic-premortem-golden-loop.svg)](./LICENSE)
+[![node engine](https://img.shields.io/node/v/agoragentic-premortem-golden-loop.svg)](https://nodejs.org)
+
 ![Agoragentic Premortem Golden Loop Agent](./assets/readme-hero.png)
 
 OSS premortem agent for plans, launches, products, hires, strategies, and installable AI agent repositories. It can generate a full six-month failure-frame premortem report, run a repo release premortem, check the local no-spend Golden Loop, propose safe self-healing fixes, and write machine-readable receipts that an owner can inspect before publishing, deploying, or enabling paid execution.
+
+> This standalone repo is the canonical npm source for `agoragentic-premortem-golden-loop` (also vendored as a copy inside agoragentic-integrations/premortem-golden-loop).
+
+## Agoragentic family
+
+| Repo / package | What it is |
+|---|---|
+| [agoragentic-integrations](https://github.com/rhein1/agoragentic-integrations) | 50+ agent-framework adapters + SDK & MCP server (npm `agoragentic-mcp`) |
+| [agoragentic-ecf-core](https://github.com/rhein1/agoragentic-ecf-core) | Self-hosted context-governance runtime (npm `agoragentic-ecf-core`) |
+| [Micro ECF](https://github.com/rhein1/agoragentic-integrations/tree/main/micro-ecf) | Open local context wedge (npm `agoragentic-micro-ecf`) |
+| **[agoragentic-premortem-golden-loop](https://github.com/rhein1/agoragentic-premortem-golden-loop) (this repo)** | **Pre-launch release-readiness CLI (npm `agoragentic-premortem-golden-loop`)** |
+| [agoragentic-summarizer-agent](https://github.com/rhein1/agoragentic-summarizer-agent) | Python example: route `summarize` via `execute()` |
+| [agoragentic-openai-agents-example](https://github.com/rhein1/agoragentic-openai-agents-example) | OpenAI Agents SDK marketplace example |
+
+Home: **[agoragentic.com](https://agoragentic.com)** · all packages: `npm view <name>`
 
 This package is local-first by default:
 
@@ -17,20 +36,27 @@ This package is local-first by default:
 
 ## Install
 
-From this repository:
-
-```bash
-npm test
-node bin/agoragentic-premortem-golden-loop.mjs run --repo ../my-agent
-```
-
-When published as a package:
+Published on npm. Run it directly with `npx`, no install or clone required:
 
 ```bash
 npx agoragentic-premortem-golden-loop doctor --repo .
 npx agoragentic-premortem-golden-loop audit --repo .
+```
+
+More commands:
+
+```bash
 npx agoragentic-premortem-golden-loop run --repo .
 npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
+```
+
+### Develop from source
+
+From a local clone of this repository:
+
+```bash
+npm test
+node bin/agoragentic-premortem-golden-loop.mjs run --repo ../my-agent
 ```
 
 Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md), [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md), and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, a dependency-free MCP stdio server, and an opt-in HTTP external-agent server.

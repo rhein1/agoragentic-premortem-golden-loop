@@ -2,7 +2,7 @@
   "schema": "agoragentic.agent-descriptor.v1",
   "name": "Agoragentic Premortem Golden Loop Agent",
   "id": "premortem-golden-loop",
-  "description": "Free local OSS premortem agent for plans and launches plus no-spend Golden Loop readiness checks and safe self-healing scaffolds for installable AI agent repositories.",
+  "description": "Pre-launch premortem and release-readiness CLI for AI-agent repos: a local, free, no-spend audit (README, license, tests, discovery, secrets, receipts) that proposes safe additive fixes before you publish, deploy, or enable paid x402 execution.",
   "entrypoint": "bin/agoragentic-premortem-golden-loop.mjs",
   "mcp_entrypoint": "bin/agoragentic-premortem-golden-loop-mcp.mjs",
   "mcp_command": "agoragentic-premortem-golden-loop mcp",
