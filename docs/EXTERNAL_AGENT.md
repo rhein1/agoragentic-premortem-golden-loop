@@ -74,10 +74,27 @@ HTTP callers cannot request sensitive actions unless the server owner enables th
 ```bash
 --allow-remote-safe-fixes   # permits authenticated POST /audit or /heal with applySafeFixes=true
 --allow-remote-network      # permits targetUrl checks or public no-spend canaries
+--allow-internal-targets    # ALSO allow targetUrl probes to internal/loopback/link-local/RFC1918 hosts
 --allow-remote-tests        # permits package.json scripts.test execution
 ```
 
 Without those flags, requests for those actions return `403`.
+
+> **SSRF note — read before enabling `--allow-remote-network`.** When this flag is
+> set, an authenticated caller can supply any `targetUrl` and the server will issue
+> `GET` requests to it (the URL plus `/health`, `/.well-known/agent.json`,
+> `/agent.json`, `/openapi.json`, `/openapi.yaml`). The response HTTP **status,
+> timing, content-type, and top-level JSON key names** are returned to the caller,
+> so the endpoint can be used as a probe. By default the server refuses targets
+> that resolve to loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16`
+> including the cloud metadata host `169.254.169.254` in any decimal/octal/hex
+> encoding, `fe80::/10`), and RFC1918 private ranges (`10.0.0.0/8`,
+> `172.16.0.0/12`, `192.168.0.0/16`), plus `0.0.0.0`; resolved IPs are validated
+> (not just the hostname) and redirects are not auto-followed, to resist
+> DNS-rebinding and redirect-to-internal attacks. Set `--allow-internal-targets`
+> only in a trusted environment where probing internal hosts is intended. Apply
+> egress network controls (firewall/security-group rules) when enabling remote
+> network probes on a shared or cloud-hosted server.
 
 ## Endpoints
 
@@ -95,6 +112,8 @@ Without those flags, requests for those actions return `403`.
 | POST | `/run` | yes when token configured | Premortem plus Golden Loop receipt |
 
 All POST bodies are JSON. If `repo` is omitted, the server uses the `--repo` root. If `repo` is supplied, it must stay inside the server's allowed root. If `out` is supplied, it must stay inside the selected repo.
+
+The unauthenticated `/.well-known/agent.json` descriptor does **not** include the server's absolute filesystem path; it reports only `scoped: true` and `root_configured`. The absolute `allowed_root` is available to authenticated callers on `GET /tools`.
 
 ## Docker
 

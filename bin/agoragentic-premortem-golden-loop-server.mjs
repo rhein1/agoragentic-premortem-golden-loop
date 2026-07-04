@@ -19,6 +19,8 @@ Options:
   --external-agent-token <text>  Bearer token. Required for non-loopback host binding.
   --allow-remote-safe-fixes      Let authenticated callers request --apply-safe-fixes.
   --allow-remote-network         Let authenticated callers request target-url or no-spend network canaries.
+  --allow-internal-targets       Also allow target-url probes to internal/loopback/link-local/RFC1918 hosts.
+                                 Off by default; such targets (incl. cloud metadata) are blocked as SSRF.
   --allow-remote-tests           Let authenticated callers run package.json scripts.test.
   --help                         Show this help.
 `;
@@ -37,6 +39,7 @@ async function main(argv) {
     ['token']: parsed.bearer,
     allowRemoteSafeFixes: parsed.allowRemoteSafeFixes,
     allowRemoteNetwork: parsed.allowRemoteNetwork,
+    allowInternalTargets: parsed.allowInternalTargets,
     allowRemoteTests: parsed.allowRemoteTests
   });
 
@@ -57,6 +60,7 @@ function parseArgs(argv) {
     bearer: process.env.AGORAGENTIC_EXTERNAL_AGENT_TOKEN || '',
     allowRemoteSafeFixes: false,
     allowRemoteNetwork: false,
+    allowInternalTargets: false,
     allowRemoteTests: false,
     help: false
   };
@@ -71,6 +75,7 @@ function parseArgs(argv) {
     else if (arg === '--external-agent-token') parsed.bearer = takeValue(args, ++index, arg);
     else if (arg === '--allow-remote-safe-fixes') parsed.allowRemoteSafeFixes = true;
     else if (arg === '--allow-remote-network') parsed.allowRemoteNetwork = true;
+    else if (arg === '--allow-internal-targets') parsed.allowInternalTargets = true;
     else if (arg === '--allow-remote-tests') parsed.allowRemoteTests = true;
     else throw new Error(`Unknown option: ${arg}`);
   }

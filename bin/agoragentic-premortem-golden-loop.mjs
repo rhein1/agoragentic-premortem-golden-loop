@@ -55,6 +55,9 @@ Options:
   --target-url <url>    Optional running agent URL to health/discovery probe.
   --allow-network-canaries
                        Opt in to public no-spend Agoragentic canaries. Sends no repo contents.
+  --allow-internal-targets
+                       Allow --target-url probes to internal/loopback/link-local/RFC1918 hosts.
+                       Off by default; such targets (incl. cloud metadata) are blocked as SSRF.
   --skip-network        Force local-only mode.
   --run-tests           Run package.json scripts.test with AGORAGENTIC_NO_SPEND=1.
   --apply-safe-fixes    For heal: create only missing additive docs/metadata/CI files.
@@ -95,6 +98,7 @@ async function main(argv) {
     success: parsed.success || null,
     skipNetwork: parsed.skipNetwork,
     allowNetworkCanaries: parsed.allowNetworkCanaries,
+    allowInternalTargets: parsed.allowInternalTargets,
     applySafeFixes: parsed.applySafeFixes,
     runTests: parsed.runTests
   };
@@ -113,6 +117,7 @@ async function main(argv) {
       baseUrl: options.baseUrl,
       allowRemoteSafeFixes: parsed.allowRemoteSafeFixes,
       allowRemoteNetwork: parsed.allowRemoteNetwork,
+      allowInternalTargets: parsed.allowInternalTargets,
       allowRemoteTests: parsed.allowRemoteTests
     });
     emit(parsed, {
@@ -251,6 +256,7 @@ function parseArgs(argv) {
     targetUrl: null,
     skipNetwork: false,
     allowNetworkCanaries: false,
+    allowInternalTargets: false,
     runTests: false,
     applySafeFixes: false,
     host: DEFAULT_EXTERNAL_AGENT_HOST,
@@ -286,6 +292,7 @@ function parseArgs(argv) {
     else if (arg === '--target-url') parsed.targetUrl = takeValue(args, ++index, arg);
     else if (arg === '--skip-network') parsed.skipNetwork = true;
     else if (arg === '--allow-network-canaries') parsed.allowNetworkCanaries = true;
+    else if (arg === '--allow-internal-targets') parsed.allowInternalTargets = true;
     else if (arg === '--run-tests') parsed.runTests = true;
     else if (arg === '--apply-safe-fixes') parsed.applySafeFixes = true;
     else if (arg === '--open-report') parsed.openReport = true;

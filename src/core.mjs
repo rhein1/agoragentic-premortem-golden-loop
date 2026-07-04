@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
+import dns from 'node:dns/promises';
+import net from 'node:net';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -521,6 +523,7 @@ async function fetchWithTimeout(url, options = {}) {
         'user-agent': 'agoragentic-premortem-golden-loop/0.1'
       },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      redirect: options.redirect || 'follow',
       signal: controller.signal
     });
     const contentType = response.headers.get('content-type') || '';
@@ -538,6 +541,7 @@ async function fetchWithTimeout(url, options = {}) {
       status: response.status,
       elapsed_ms: Date.now() - started,
       content_type: contentType,
+      location: response.headers.get('location') || null,
       body_shape: bodyShape(body)
     };
   } catch (err) {
@@ -630,8 +634,101 @@ async function runPublicCanaries(baseUrl) {
   return results;
 }
 
-async function runTargetChecks(targetUrl) {
+// SSRF guard: an authenticated caller can direct the server at an arbitrary
+// targetUrl once --allow-remote-network is enabled. Unless the owner ALSO opts
+// in to internal targets, block requests that resolve to loopback, link-local
+// (incl. the cloud metadata host 169.254.169.254 in any encoding), and RFC1918
+// private ranges. We validate the resolved IPs rather than only the hostname
+// string so a public name that resolves (or DNS-rebinds) to an internal address
+// is still rejected.
+function normalizeIpv4(hostname) {
+  // Accept dotted-quad, or the decimal/octal/hex encodings Node's URL parser
+  // leaves untouched (e.g. 2852039166, 0xA9FEA9FE) and re-render them dotted.
+  const asInt = (str) => {
+    const trimmed = String(str).trim();
+    if (/^0x[0-9a-f]+$/i.test(trimmed)) return Number.parseInt(trimmed, 16);
+    if (/^0[0-7]+$/.test(trimmed)) return Number.parseInt(trimmed, 8);
+    if (/^\d+$/.test(trimmed)) return Number.parseInt(trimmed, 10);
+    return Number.NaN;
+  };
+  if (net.isIP(hostname) === 4) return hostname;
+  const parts = String(hostname).split('.');
+  if (parts.length === 1) {
+    const n = asInt(parts[0]);
+    if (!Number.isInteger(n) || n < 0 || n > 0xffffffff) return null;
+    return [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff].join('.');
+  }
+  if (parts.length === 4) {
+    const octets = parts.map(asInt);
+    if (octets.some((o) => !Number.isInteger(o) || o < 0 || o > 255)) return null;
+    return octets.join('.');
+  }
+  return null;
+}
+
+function isBlockedIp(ip) {
+  if (typeof ip !== 'string') return true;
+  const dotted = net.isIP(ip) === 4 ? ip : normalizeIpv4(ip);
+  if (dotted) {
+    const o = dotted.split('.').map((p) => Number.parseInt(p, 10));
+    if (o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+    if (o[0] === 0) return true; // 0.0.0.0/8
+    if (o[0] === 127) return true; // loopback 127.0.0.0/8
+    if (o[0] === 10) return true; // RFC1918 10/8
+    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return true; // RFC1918 172.16/12
+    if (o[0] === 192 && o[1] === 168) return true; // RFC1918 192.168/16
+    if (o[0] === 169 && o[1] === 254) return true; // link-local incl. 169.254.169.254
+    if (o[0] === 100 && o[1] >= 64 && o[1] <= 127) return true; // CGNAT 100.64/10
+    return false;
+  }
+  if (net.isIP(ip) === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === '::' || lower === '::1') return true; // unspecified / loopback
+    if (lower.startsWith('fe80')) return true; // link-local
+    if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique local fc00::/7
+    // IPv4-mapped / IPv4-compatible: re-check the embedded v4 address.
+    const embedded = lower.match(/(?:::ffff:|::)((?:\d{1,3}\.){3}\d{1,3})$/);
+    if (embedded) return isBlockedIp(embedded[1]);
+    return false;
+  }
+  return true; // unparseable → block
+}
+
+async function assertPublicTarget(rawUrl, allowInternalTargets) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(`invalid URL: ${rawUrl}`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`blocked scheme ${parsed.protocol} (only http:/https: allowed)`);
+  }
+  if (allowInternalTargets) return;
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
+  // Literal IP in the URL — check it directly (covers decimal/octal/hex 169.254.169.254).
+  const literal = net.isIP(hostname) ? hostname : normalizeIpv4(hostname);
+  if (literal && net.isIP(literal)) {
+    if (isBlockedIp(literal)) throw new Error(`blocked internal target ${hostname}`);
+    return;
+  }
+  // Hostname — resolve every A/AAAA record and block if ANY is internal
+  // (defends against DNS rebinding and split-horizon answers).
+  let addresses = [];
+  try {
+    addresses = await dns.lookup(hostname, { all: true });
+  } catch (err) {
+    throw new Error(`could not resolve ${hostname}: ${err.message}`);
+  }
+  if (!addresses.length) throw new Error(`could not resolve ${hostname}`);
+  for (const { address } of addresses) {
+    if (isBlockedIp(address)) throw new Error(`${hostname} resolves to blocked internal address ${address}`);
+  }
+}
+
+async function runTargetChecks(targetUrl, options = {}) {
   if (!targetUrl) return [];
+  const allowInternalTargets = Boolean(options.allowInternalTargets);
   const clean = String(targetUrl).replace(/\/$/, '');
   const candidates = [
     clean,
@@ -643,7 +740,28 @@ async function runTargetChecks(targetUrl) {
   ];
   const checks = [];
   for (const url of candidates) {
-    const response = await fetchWithTimeout(url, { method: 'GET', timeoutMs: 8000 });
+    let response;
+    try {
+      // Validate scheme + resolved host BEFORE issuing the request.
+      await assertPublicTarget(url, allowInternalTargets);
+      // redirect:'manual' so a public URL cannot 3xx-redirect into an internal
+      // host after we validated the original target.
+      response = await fetchWithTimeout(url, { method: 'GET', timeoutMs: 8000, redirect: 'manual' });
+      // Re-validate any redirect Location against the same allowlist.
+      if (!response.error && response.location) {
+        const nextUrl = new URL(response.location, url).toString();
+        await assertPublicTarget(nextUrl, allowInternalTargets);
+      }
+    } catch (err) {
+      checks.push({
+        url,
+        status: 'warn',
+        http_status: null,
+        elapsed_ms: 0,
+        evidence: [`GET ${url} blocked: ${err.message}`]
+      });
+      continue;
+    }
     checks.push({
       url,
       status: response.status && response.status < 500 ? 'pass' : 'warn',
@@ -822,7 +940,9 @@ export async function runGoldenLoop(options = {}) {
     stages[stages.length - 1].canaries = canaries;
   }
 
-  const targetChecks = await runTargetChecks(options.targetUrl);
+  const targetChecks = await runTargetChecks(options.targetUrl, {
+    allowInternalTargets: Boolean(options.allowInternalTargets)
+  });
   if (targetChecks.length) {
     const targetPass = targetChecks.some((item) => item.status === 'pass' && item.http_status && item.http_status < 400);
     stages.push(stage(
