@@ -116,6 +116,8 @@ curl -s http://127.0.0.1:8787/audit \
 
 For a private network or cloud VM, set `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` before binding to `0.0.0.0`. Remote safe fixes, network probes, and test execution stay disabled unless the owner starts the server with `--allow-remote-safe-fixes`, `--allow-remote-network`, or `--allow-remote-tests`.
 
+`--allow-remote-network` lets an authenticated caller direct the server to issue `GET` requests to arbitrary `targetUrl`s and returns the response status, timing, content-type, and top-level JSON key names to the caller. Internal/loopback/link-local (including the cloud metadata host `169.254.169.254`) and RFC1918 targets are blocked by default; pass `--allow-internal-targets` only in trusted environments, and apply egress network controls when exposing this on a shared or cloud host. See `docs/EXTERNAL_AGENT.md` for details.
+
 See `docs/EXTERNAL_AGENT.md` for endpoint details and Docker/systemd setup.
 
 ## GitHub Actions

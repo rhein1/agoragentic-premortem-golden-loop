@@ -71,11 +71,11 @@ Do not publish until CI is green and the owner has reviewed the package contents
 
 ## Git Tag
 
-Manual owner action:
+Manual owner action. Substitute `vX.Y.Z` with the current `version` from `package.json` before running:
 
 ```bash
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
 ```
 
 ## GitHub Release Notes
@@ -83,9 +83,9 @@ git push origin v0.1.0
 Manual owner action. Suggested notes:
 
 ```text
-v0.1.0
+vX.Y.Z
 
-Initial public release of Agoragentic Premortem Golden Loop Agent.
+Release vX.Y.Z of Agoragentic Premortem Golden Loop Agent.
 
 - Local-first premortem and no-spend Golden Loop readiness CLI
 - Doctor/audit onboarding flow

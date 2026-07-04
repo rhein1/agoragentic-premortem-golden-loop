@@ -76,6 +76,7 @@ export function createExternalAgentServer(config = {}) {
     baseUrl: config.baseUrl || DEFAULT_BASE_URL,
     allowRemoteSafeFixes: Boolean(config.allowRemoteSafeFixes),
     allowRemoteNetwork: Boolean(config.allowRemoteNetwork),
+    allowInternalTargets: Boolean(config.allowInternalTargets),
     allowRemoteTests: Boolean(config.allowRemoteTests)
   };
 
@@ -152,6 +153,9 @@ async function routeRequest(request, response, config) {
     sendJson(response, 200, {
       schema: 'agoragentic.premortem-golden-loop.external-agent.tools.v1',
       tools: HTTP_TOOLS,
+      // Absolute host path is only exposed here, behind requireAuth — the
+      // unauthenticated /.well-known/agent.json descriptor no longer leaks it.
+      allowed_root: config.allowedRoot,
       boundary: externalBoundary(config)
     });
     return;
@@ -230,6 +234,10 @@ function requestOptions(body, config) {
     success: body.success ? String(body.success) : null,
     skipNetwork: requestedNetwork ? Boolean(body.skipNetwork) : true,
     allowNetworkCanaries: Boolean(body.allowNetworkCanaries),
+    // Internal/loopback/metadata targets stay blocked (SSRF guard) unless the
+    // owner started the server with --allow-internal-targets. Callers cannot
+    // unlock this over the wire.
+    allowInternalTargets: Boolean(config.allowInternalTargets),
     applySafeFixes: Boolean(body.applySafeFixes),
     runTests: Boolean(body.runTests)
   };
@@ -272,7 +280,12 @@ async function loadAgentDescriptor(config) {
       tools: '/tools',
       endpoints: HTTP_TOOLS.map((tool) => ({ method: tool.method, path: tool.path, name: tool.name })),
       token_required: Boolean(config.token),
-      allowed_root: config.allowedRoot,
+      // Do not leak the absolute host path to unauthenticated callers. This
+      // descriptor is served without auth (docs/EXTERNAL_AGENT.md marks it
+      // Auth=no), so expose only a non-identifying flag. Authenticated callers
+      // that need the absolute root can read /tools (behind requireAuth).
+      scoped: true,
+      root_configured: Boolean(config.allowedRoot),
       boundary: externalBoundary(config)
     }
   };
