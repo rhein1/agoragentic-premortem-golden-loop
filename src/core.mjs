@@ -2459,6 +2459,7 @@ export function buildLocalReceipt({ root, premortem, goldenLoop }) {
       root: slash(root),
       premortem: premortem.summary,
       golden_loop: goldenLoop.summary,
+      golden_loop_boundary: goldenLoop.boundary,
       repo_fingerprint: premortem.repo_fingerprint
     }))
     .digest('hex');
@@ -2475,7 +2476,7 @@ export function buildLocalReceipt({ root, premortem, goldenLoop }) {
     no_spend: true,
     boundary: {
       free_to_use: true,
-      network_calls: false,
+      network_calls: Boolean(goldenLoop.boundary?.network_calls),
       repo_contents_uploaded: false,
       credentials_required: false,
       paid_execution: false,
