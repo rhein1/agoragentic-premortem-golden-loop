@@ -22,6 +22,13 @@ This repository is a free, local-first OSS agent for premortems, no-spend Golden
 - Self-heal must not overwrite files, delete files, edit application source code, rotate secrets, install dependencies, deploy, publish, or spend money.
 - Secret scanning must never echo detected secret values.
 
+## Fable / ECF Workflow Discipline
+
+- Use [docs/agent-workflow-contracts.md](docs/agent-workflow-contracts.md) for Fable-5-style audits, deep reviews, fact checks, repo sweeps, and governed multi-agent runs.
+- Use [docs/fable-review-contract.md](docs/fable-review-contract.md) when writing PR-review findings.
+- Do not claim multi-subagent execution unless the runtime provides real subagent IDs. If no subagent runtime is available, report `subagents: none_available`.
+- Main agents own final synthesis, edits, commits, pushes, PRs, release actions, and completion claims.
+
 ## Validation
 
 Run these before publishing changes:
