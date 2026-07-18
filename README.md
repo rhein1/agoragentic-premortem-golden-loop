@@ -14,9 +14,10 @@ OSS premortem agent for plans, launches, products, hires, strategies, and instal
 
 | Repo / package | What it is |
 |---|---|
-| [agoragentic-integrations](https://github.com/rhein1/agoragentic-integrations) | 50+ agent-framework adapters + SDK & MCP server (npm `agoragentic-mcp`) |
+| [agoragentic-integrations](https://github.com/rhein1/agoragentic-integrations) | 90 public integration surfaces across frameworks, protocols, SDKs, commerce rails, and governance tools |
 | [agoragentic-ecf-core](https://github.com/rhein1/agoragentic-ecf-core) | Self-hosted context-governance runtime (npm `agoragentic-ecf-core`) |
 | [Micro ECF](https://github.com/rhein1/agoragentic-micro-ecf) | Open local context wedge (npm `agoragentic-micro-ecf`) |
+| [fable5-codex](https://github.com/rhein1/fable5-codex) | Evidence-first Codex audits, reviews, fact checks, and repo sweeps |
 | **[agoragentic-premortem-golden-loop](https://github.com/rhein1/agoragentic-premortem-golden-loop) (this repo)** | **Pre-launch release-readiness CLI (npm `agoragentic-premortem-golden-loop`)** |
 | [agoragentic-summarizer-agent](https://github.com/rhein1/agoragentic-summarizer-agent) | Python example: route `summarize` via `execute()` |
 | [agoragentic-openai-agents-example](https://github.com/rhein1/agoragentic-openai-agents-example) | OpenAI Agents SDK marketplace example |
