@@ -1,6 +1,6 @@
 # Release Checklist
 
-Release and distribution steps are owner/manual actions. This package must not publish, tag, deploy, transfer funds, or configure GitHub repository settings automatically.
+Release approval, npm trusted-publisher configuration, tagging, and GitHub Release creation are owner actions. The release workflow may publish the reviewed package through npm OIDC after a GitHub Release is published; the package itself must not tag, deploy, transfer funds, or configure repository settings.
 
 ## Final Validation
 
@@ -59,15 +59,15 @@ For non-loopback binding, set `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` and verify auth
 
 ## npm Publish
 
-Manual owner action:
+Configure the npm trusted publisher once using `TRUSTED_PUBLISHING.md`. Do not add a long-lived npm token. After CI is green and the package contents are reviewed, publish a GitHub Release whose tag matches `v` plus the package version. `.github/workflows/publish.yml` then reruns `npm run release:check` and publishes through OIDC.
+
+Local validation remains:
 
 ```bash
-npm login
 npm pack --dry-run
-npm publish --access public
 ```
 
-Do not publish until CI is green and the owner has reviewed the package contents from `npm pack --dry-run`.
+Do not create the GitHub Release until CI is green and the owner has reviewed the package contents from `npm pack --dry-run`.
 
 ## Git Tag
 
@@ -115,4 +115,4 @@ Manual owner action:
 
 ## Owner Boundary
 
-The repository can generate local readiness artifacts, examples, and handoff prompts. The owner remains responsible for npm publish, Git tags, GitHub releases, social preview settings, Docker runtime checks, MCP client configuration, and external HTTP agent deployment/authentication.
+The repository can generate local readiness artifacts, examples, and handoff prompts. The owner remains responsible for release approval, npm trusted-publisher configuration, Git tags, GitHub releases, social preview settings, Docker runtime checks, MCP client configuration, and external HTTP agent deployment/authentication.
