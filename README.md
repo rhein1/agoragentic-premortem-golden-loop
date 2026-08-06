@@ -1,319 +1,309 @@
-# Agoragentic Premortem Golden Loop Agent
+# Agoragentic Premortem Golden Loop
+
+![Find the launch failure before your users do](assets/premortem-product-hero.svg)
 
 [![npm version](https://img.shields.io/npm/v/agoragentic-premortem-golden-loop.svg)](https://www.npmjs.com/package/agoragentic-premortem-golden-loop)
-[![license](https://img.shields.io/npm/l/agoragentic-premortem-golden-loop.svg)](./LICENSE)
-[![node engine](https://img.shields.io/node/v/agoragentic-premortem-golden-loop.svg)](https://nodejs.org)
+[![CI](https://github.com/rhein1/agoragentic-premortem-golden-loop/actions/workflows/ci.yml/badge.svg)](https://github.com/rhein1/agoragentic-premortem-golden-loop/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/agoragentic-premortem-golden-loop.svg)](LICENSE)
+[![node](https://img.shields.io/node/v/agoragentic-premortem-golden-loop.svg)](https://nodejs.org)
 
-![Agoragentic Premortem Golden Loop Agent](./assets/readme-hero.png)
+## Find the launch failure before your users do.
 
-OSS premortem agent for plans, launches, products, hires, strategies, and installable AI agent repositories. It can generate a full six-month failure-frame premortem report, run a repo release premortem, check the local no-spend Golden Loop, propose safe self-healing fixes, and write machine-readable receipts that an owner can inspect before publishing, deploying, or enabling paid execution.
-
-> This standalone repo is the canonical npm source for `agoragentic-premortem-golden-loop` (also vendored as a copy inside agoragentic-integrations/premortem-golden-loop).
-
-## Agoragentic family
-
-| Repo / package | What it is |
-|---|---|
-| [agoragentic-integrations](https://github.com/rhein1/agoragentic-integrations) | 93 public integration surfaces across frameworks, protocols, SDKs, commerce rails, and governance tools |
-| [agoragentic-ecf-core](https://github.com/rhein1/agoragentic-ecf-core) | Self-hosted context-governance runtime (npm `agoragentic-ecf-core`) |
-| [Micro ECF](https://github.com/rhein1/agoragentic-micro-ecf) | Open local context wedge (npm `agoragentic-micro-ecf`) |
-| [fable5-codex](https://github.com/rhein1/fable5-codex) | Evidence-first Codex audits, reviews, fact checks, and repo sweeps |
-| **[agoragentic-premortem-golden-loop](https://github.com/rhein1/agoragentic-premortem-golden-loop) (this repo)** | **Pre-launch release-readiness CLI (npm `agoragentic-premortem-golden-loop`)** |
-| [agoragentic-summarizer-agent](https://github.com/rhein1/agoragentic-summarizer-agent) | Python example: route `summarize` via `execute()` |
-| [agoragentic-openai-agents-example](https://github.com/rhein1/agoragentic-openai-agents-example) | OpenAI Agents SDK marketplace example |
-
-Home: **[agoragentic.com](https://agoragentic.com)** · all packages: `npm view <name>`
-
-Agent workflow contracts: [governed agent runs](./docs/agent-workflow-contracts.md) and [Fable review output](./docs/fable-review-contract.md).
-
-This package is local-first by default:
-
-- free to use
-- no Agoragentic API key required
-- no wallet required
-- no repo contents, prompts, business plans, reports, or receipts sent anywhere
-- no network calls unless explicitly requested
-- no paid execution
-- no production mutation
-- self-heal never overwrites existing files, deletes files, rotates secrets, deploys, or publishes
-
-## Install
-
-Published on npm. Run it directly with `npx`, no install or clone required:
+**Premortem Golden Loop is a free local audit and repair-guidance CLI for plans, launches, products, and installable AI-agent repositories.** It frames the launch as already failed, finds evidence-backed risks, checks the no-spend release loop, proposes bounded fixes, and rechecks what was actually resolved.
 
 ```bash
-npx agoragentic-premortem-golden-loop doctor --repo .
-npx agoragentic-premortem-golden-loop audit --repo .
+npx agoragentic-premortem-golden-loop@latest audit --repo .
 ```
 
-More commands:
+The default run is local and writes inspectable artifacts. It does not upload repository contents, call a paid service, deploy, publish, transfer funds, mutate wallets, rotate secrets, or overwrite application source.
+
+<p>
+  <a href="#run-the-audit"><strong>Run the audit</strong></a>
+  ·
+  <a href="#review-and-repair"><strong>Review safe fixes</strong></a>
+  ·
+  <a href="examples/"><strong>See sample outputs</strong></a>
+  ·
+  <a href="docs/INTEGRATIONS.md"><strong>Integrate it</strong></a>
+</p>
+
+## The loop
+
+```text
+Assume the launch failed
+        ↓
+collect likely failure reasons
+        ↓
+inspect repository evidence
+        ↓
+rank blockers and hidden assumptions
+        ↓
+produce repair guidance and an IDE handoff
+        ↓
+apply only reviewed bounded changes
+        ↓
+rerun and record resolved vs. still open
+```
+
+The tool produces evidence and recommendations. It does not certify the repository, guarantee launch success, or replace an independent security, legal, financial, or operational review.
+
+## Run the audit
+
+### Explain the boundary first
 
 ```bash
-npx agoragentic-premortem-golden-loop run --repo .
-npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
+npx agoragentic-premortem-golden-loop@latest doctor --repo .
 ```
 
-### Develop from source
+`doctor` reports what the tool plans to read, which local artifacts it may write, and which actions remain outside its authority.
 
-From a local clone of this repository:
+### Run the default local audit
 
 ```bash
-npm test
-node bin/agoragentic-premortem-golden-loop.mjs run --repo ../my-agent
+npx agoragentic-premortem-golden-loop@latest audit --repo .
 ```
 
-Integration recipes and ready-to-copy templates live in [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md), [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md), and [`templates/`](./templates/). The repo includes IDE agent snippets, GitHub Actions, Docker/home-server examples, a dependency-free MCP stdio server, and an opt-in HTTP external-agent server.
+The audit combines:
 
-Release steps live in [`docs/RELEASE.md`](./docs/RELEASE.md). Sanitized sample outputs live in [`examples/`](./examples/).
+- repository release premortem;
+- install/config/discovery/proof/approval/test readiness;
+- local no-spend Golden Loop checks;
+- launch-gate findings;
+- a bounded self-heal plan;
+- an IDE-agent repair prompt;
+- a closure loop for later reruns;
+- a clearly labeled local receipt.
 
-## Commands
+### Add the business context
+
+A useful premortem needs to know what is launching, who it is for, and what success means:
 
 ```bash
-# Explain what the agent will read/write before running the audit.
-node bin/agoragentic-premortem-golden-loop.mjs doctor --repo .
-
-# One-command local audit: repo premortem, Golden Loop, HTML guide, heal plan, IDE handoff.
-node bin/agoragentic-premortem-golden-loop.mjs audit --repo .
-
-# Full audit with business context so the premortem report is complete.
-node bin/agoragentic-premortem-golden-loop.mjs audit --repo . \
-  --plan "Launch an OSS AI agent that runs premortems and Golden Loop readiness checks" \
-  --audience "AI agent builders preparing public releases" \
-  --success "builders install it, run it, and make one concrete launch change"
-
-# Apply only missing additive scaffolds after reviewing the audit.
-node bin/agoragentic-premortem-golden-loop.mjs audit --repo . --apply-safe-fixes
-
-# Rerun the audit to close the loop. The report tracks what was applied,
-# what is now verified resolved, and what remains open.
-node bin/agoragentic-premortem-golden-loop.mjs audit --repo .
-
-# Full Klein-style premortem session for a plan, launch, or decision.
-node bin/agoragentic-premortem-golden-loop.mjs session \
-  --plan "Launch an OSS AI agent that runs premortems and Golden Loop readiness checks" \
-  --audience "AI agent builders preparing public releases" \
-  --success "builders install it, run it, and make one concrete launch change"
-
-# Full local premortem plus no-spend Golden Loop receipt.
-node bin/agoragentic-premortem-golden-loop.mjs run --repo .
-
-# Self-heal plan only. No files are changed.
-node bin/agoragentic-premortem-golden-loop.mjs heal --repo .
-
-# Apply safe additive fixes: missing docs, agent.json, .env.example, or CI scaffold.
-node bin/agoragentic-premortem-golden-loop.mjs heal --repo . --apply-safe-fixes
-
-# Static repo release premortem only.
-node bin/agoragentic-premortem-golden-loop.mjs premortem --repo .
-
-# Golden Loop readiness only.
-node bin/agoragentic-premortem-golden-loop.mjs golden-loop --repo .
-
-# CI mode: fail when blockers or Golden Loop failures remain.
-node bin/agoragentic-premortem-golden-loop.mjs run --repo . --ci
-
-# Explicit offline mode. This is also the default.
-node bin/agoragentic-premortem-golden-loop.mjs run --repo . --skip-network
-
-# Optional public no-spend canaries. Sends no repo contents.
-node bin/agoragentic-premortem-golden-loop.mjs run --repo . --allow-network-canaries
-
-# Optional runtime probe for a locally running agent.
-node bin/agoragentic-premortem-golden-loop.mjs run --repo . --target-url http://localhost:3000
-
-# Optional external HTTP agent for private tools that cannot speak MCP.
-node bin/agoragentic-premortem-golden-loop.mjs serve --repo . --host 127.0.0.1 --port 8787
+npx agoragentic-premortem-golden-loop@latest audit --repo . \
+  --plan "Launch an OSS AI-agent audit CLI" \
+  --audience "Builders preparing public agent repositories" \
+  --success "A builder runs it and fixes one material launch risk"
 ```
 
-Artifacts are written to:
+When required context is missing, the tool asks for the next necessary input instead of fabricating a generic business conclusion.
+
+## What success looks like
+
+Artifacts are written under:
 
 ```text
 .agoragentic/premortem-golden-loop/
-  premortem-report-[timestamp].html
-  premortem-transcript-[timestamp].md
-  premortem-session-[timestamp].json
-  doctor.json
-  doctor.md
-  audit.json
-  audit-guide.html
-  audit-summary.md
-  closure-loop.json
-  closure-loop.md
-  ide-fix-prompt.md
-  agent-handoff.md
-  premortem.json
-  premortem.md
-  golden-loop.json
-  golden-loop.md
-  local-receipt.json
-  summary.md
-  healing-plan.json
-  healing-plan.md
-  healing-recheck.json
+├── doctor.json
+├── doctor.md
+├── audit.json
+├── audit-summary.md
+├── audit-guide.html
+├── premortem.json
+├── premortem.md
+├── premortem-report-<timestamp>.html
+├── golden-loop.json
+├── golden-loop.md
+├── local-receipt.json
+├── healing-plan.json
+├── healing-plan.md
+├── ide-fix-prompt.md
+├── agent-handoff.md
+├── closure-loop.json
+└── closure-loop.md
 ```
 
-## Workflow For Users
+A green-looking report is not the goal. The useful result is a truthful separation between:
 
-![Premortem Golden Loop workflow](./assets/workflow-diagram.png)
+- verified resolved issues;
+- remaining blockers;
+- assumptions that still need owner evidence;
+- recommendations that were not applied;
+- checks that were not run.
 
-1. Paste the GitHub repo into a local IDE/LLM and ask it to run `npx agoragentic-premortem-golden-loop doctor --repo .`.
-2. Review the doctor output: it explains what will be read, what local artifacts will be written, and what the agent will never do.
-3. Run `audit --repo .` to produce the local repo premortem, Golden Loop receipt, HTML guide, self-heal plan, and IDE/agent handoff prompts.
-4. If the business context is missing, rerun `audit` with `--plan`, `--audience`, and `--success` so the full premortem report can be generated.
-5. Give `ide-fix-prompt.md` or `agent-handoff.md` to a local IDE agent to implement safe fixes from the findings.
-6. Run `audit --repo . --apply-safe-fixes` only after reviewing the plan; this creates missing additive scaffolds and still does not delete or overwrite code.
-7. Rerun `audit --repo .`; the closure loop compares the prior local audit with the current repo and writes `closure-loop.md` / `closure-loop.json`.
-8. Rerun `audit --repo . --ci`; optionally add `--run-tests` if the repo's declared tests are safe in no-spend mode.
-9. Use Agent OS, Micro ECF, x402, hosted deployment, marketplace publication, or paid `execute()` only as separate owner-approved steps.
+## Review and repair
 
-## One-Command Audit Flow
-
-`audit` is the intended default for local IDEs and other coding agents. It combines:
-
-- `doctor`: the safety and consent gate
-- repo premortem: local release and operating risk scan
-- no-spend Golden Loop: install/config/discovery/proof/approval/test readiness
-- premortem session: full HTML report when plan, audience, and success context are available
-- launch gate: source files read, assumptions refused, risky actions blocked, and the exact IDE prompt handed off
-- closure loop: tracks applied safe fixes, prior recommendations now verified resolved, and still-open actions across local reruns
-- self-heal plan: safe additive implementation plan
-- IDE handoff: prompts another local agent can use to fix Golden Loop readiness without destructive changes
-
-By default, `audit` writes only local artifacts. With `--apply-safe-fixes`, it may create missing scaffold files, but it still will not delete files, overwrite existing files, edit application source code, install dependencies, deploy, publish, call paid `execute()`, sign wallets, or transfer funds.
-
-## Integrations
-
-- CLI: `npx agoragentic-premortem-golden-loop audit --repo .`
-- MCP: `npx --yes agoragentic-premortem-golden-loop mcp`
-- External HTTP agent: `npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787`
-- GitHub Actions: copy [`templates/github-actions/agoragentic-premortem-golden-loop.yml`](./templates/github-actions/agoragentic-premortem-golden-loop.yml)
-- Docker/home server: use [`Dockerfile`](./Dockerfile), [`docker-compose.yml`](./docker-compose.yml), or [`templates/systemd/`](./templates/systemd/)
-- IDE agents: copy the relevant template from [`templates/`](./templates/) for Cursor, Claude Code, Codex, Cline, Windsurf, or Antigravity
-
-See [`docs/INTEGRATIONS.md`](./docs/INTEGRATIONS.md) and [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md) for exact setup steps.
-
-## External HTTP Agent
-
-`serve` is an opt-in HTTP surface for local/private agents that cannot use stdio MCP. It binds to `127.0.0.1` by default:
+### Generate the repair plan only
 
 ```bash
-npx agoragentic-premortem-golden-loop serve --repo . --host 127.0.0.1 --port 8787
+npx agoragentic-premortem-golden-loop@latest heal --repo .
 ```
 
-Available endpoints include `GET /health`, `GET /.well-known/agent.json`, `GET /tools`, and `POST /audit`. Non-loopback binding requires `AGORAGENTIC_EXTERNAL_AGENT_TOKEN` or `--external-agent-token`; remote safe fixes, network probes, and test execution require separate owner-approval flags. See [`docs/EXTERNAL_AGENT.md`](./docs/EXTERNAL_AGENT.md).
+This writes a proposed plan without editing the repository.
 
-## Examples And Release
+### Apply reviewed additive scaffolds
 
-Sanitized sample artifacts:
-
-- [`examples/sample-audit-summary.md`](./examples/sample-audit-summary.md)
-- [`examples/sample-closure-loop.md`](./examples/sample-closure-loop.md)
-- [`examples/sample-ide-fix-prompt.md`](./examples/sample-ide-fix-prompt.md)
-- [`examples/sample-local-receipt.json`](./examples/sample-local-receipt.json)
-
-Release checklist:
-
-- [`docs/RELEASE.md`](./docs/RELEASE.md)
-
-Automatically validated:
-
-- syntax checks
-- Node test suite
-- local no-spend `run --repo . --ci`
-- local no-spend `audit --repo . --ci --skip-network`
-- npm package dry run during local release validation
-
-Manual owner checks/actions:
-
-- Docker runtime build/run, when Docker is available
-- MCP client configuration inside the target client
-- external HTTP agent smoke test on the target host or private network
-- npm publish
-- Git tag and GitHub release
-- GitHub social preview upload using [`assets/social-card.png`](./assets/social-card.png)
-
-## Premortem Session Workflow
-
-The `session` command implements the prompt in [`PROMPT.md`](./PROMPT.md):
-
-- checks whether it has the minimum context: what it is, who it is for, and what success looks like
-- frames the plan as already failed six months from now
-- generates the raw failure reasons
-- runs one independent investigator pass per failure reason
-- synthesizes the most likely failure, most dangerous failure, hidden assumption, revised plan, and pre-launch checklist
-- writes a self-contained dark HTML report and a full Markdown transcript
-
-If context is missing, it writes `premortem-context-needed.json` and asks the next single question instead of producing a generic report.
-
-## What The Premortem Checks
-
-The premortem looks for release blockers and operating risks:
-
-- README, OSS license, and reproducible install contract
-- declared test contract
-- agent discovery metadata such as `agent.json`, `agent-card.json`, `SKILL.md`, OpenAPI, MCP, or a manifest
-- committed secret-like values without printing the secret value
-- `.env.example` or equivalent configuration instructions
-- explicit no-spend, budget, owner approval, x402, USDC, or paid-execution boundaries
-- receipt, trace, invocation, reconciliation, or audit-proof contract
-- basic runtime operations notes such as health, readiness, rollback, or runbook
-- Agent OS / Micro ECF / `execute(task,input,constraints)` alignment when the repo is meant to launch through Agoragentic
-
-## What The No-Spend Golden Loop Tests
-
-The local Golden Loop is a readiness loop, not a settlement proof:
-
-1. install contract exists
-2. configuration and secret boundary is clear
-3. agent discovery contract exists
-4. premortem blockers are resolved
-5. receipt/proof contract exists
-6. owner approval and spend boundary is explicit
-7. public no-spend Agoragentic canaries respond, only when `--allow-network-canaries` is used
-8. optional target runtime responds, when `--target-url` is provided
-9. optional declared tests pass, when `--run-tests` is used
-
-The public canaries are off by default. If enabled, they use only unauthenticated no-spend surfaces and do not send repository contents:
-
-- `GET /api/discovery/check`
-- `GET /api/x402/info`
-- `GET /api/x402/test/echo`
-- `GET /api/catalog?spend_possible=false&auth=none`
-
-## Self-Healing Boundaries
-
-The `heal` command is deliberately conservative. In plan mode it writes only `healing-plan.json` and `healing-plan.md` under `.agoragentic/premortem-golden-loop/`.
-
-With `--apply-safe-fixes`, it may create only missing additive scaffolds:
-
-- `docs/AGORAGENTIC_GOALS.md`
-- `docs/AGORAGENTIC_WORKFLOWS.md`
-- `docs/AGORAGENTIC_SAFETY_BOUNDARIES.md`
-- `agent.json`
-- `.env.example`
-- `.github/workflows/agoragentic-premortem-golden-loop.yml`
-
-It does not overwrite existing files, edit application source code, delete files, remove secrets, rotate credentials, install dependencies, call paid `execute()`, transfer USDC, publish listings, deploy, or open a production runtime. Secret findings and license choices remain manual owner actions.
-
-## Paid Proof Boundary
-
-This package intentionally does not sign wallet payments or run paid `execute()` calls. Real Golden Loop proof on Agoragentic includes wallet ownership, funding, quote-backed execution, receipt, and reconciliation. That path must remain explicitly owner-approved and budget-gated.
-
-For integrations, keep external paid work routed through:
-
-```text
-execute(task, input, constraints)
+```bash
+npx agoragentic-premortem-golden-loop@latest audit --repo . --apply-safe-fixes
 ```
 
-Do not hardcode provider IDs unless the agent intentionally needs a specific provider.
+The bounded apply mode may create only missing additive scaffolds such as:
 
-## Repository Images
+- goals/workflow/safety-boundary documentation;
+- `agent.json`;
+- `.env.example`;
+- a Golden Loop GitHub Actions workflow.
 
-Deterministic brand assets live in [`assets/`](./assets/). The SVG sources are generated by [`scripts/generate-brand-assets.mjs`](./scripts/generate-brand-assets.mjs), then exported to PNG for GitHub and README surfaces.
+It does not overwrite existing files, edit application source, delete files, rotate credentials, install dependencies, call paid execution, deploy, publish, sign a wallet, transfer funds, or open production runtime.
 
-- [`assets/social-card.png`](./assets/social-card.png) for the GitHub social preview
-- [`assets/readme-hero.png`](./assets/readme-hero.png) for the README hero
-- [`assets/workflow-diagram.png`](./assets/workflow-diagram.png) for the workflow section
-- [`assets/icon.png`](./assets/icon.png) for package, profile, or marketplace surfaces
+Secret findings, license choices, production changes, and existing-file edits remain owner actions.
 
-Run `npm run assets:generate` to regenerate SVG sources. Use [`docs/IMAGE_PROMPTS.md`](./docs/IMAGE_PROMPTS.md) only if creating new raster variants. Keep images consistent with the repo promise: local-first, free, no data sent anywhere by default, and explicit owner approval before any paid or networked path.
+### Recheck the closure loop
+
+```bash
+npx agoragentic-premortem-golden-loop@latest audit --repo .
+```
+
+The rerun compares current evidence with the previous local audit and records what is now verified resolved and what remains open.
+
+For a CI gate:
+
+```bash
+npx agoragentic-premortem-golden-loop@latest run --repo . --ci --skip-network
+```
+
+Optional declared tests run only when you explicitly add the relevant test flag and have reviewed the repository's test contract.
+
+## What it checks
+
+The static and local readiness pass looks for evidence such as:
+
+- a reproducible install contract;
+- an OSS license and repository metadata;
+- declared test commands;
+- machine discovery such as `agent.json`, an agent card, `SKILL.md`, MCP, OpenAPI, or another manifest;
+- secret-shaped committed values without printing the secret;
+- `.env.example` or equivalent configuration guidance;
+- owner approval and spend boundaries;
+- receipt, trace, invocation, reconciliation, or audit-proof contracts;
+- health, readiness, rollback, or runbook guidance;
+- alignment with Agent OS, Micro ECF, or `execute(task, input, constraints)` when those systems are claimed.
+
+A missing artifact is not automatically a bug for every project. Findings should be interpreted against the declared product and launch goal.
+
+## The no-spend Golden Loop
+
+The local Golden Loop checks readiness—not settlement:
+
+1. install contract exists;
+2. configuration and secret boundaries are explicit;
+3. agent discovery exists when applicable;
+4. material premortem blockers are surfaced;
+5. a proof/receipt contract exists when claimed;
+6. owner approval and spend authority are explicit;
+7. optional public no-spend canaries respond, only when enabled;
+8. an optional local target runtime responds, only when supplied;
+9. declared tests pass, only when explicitly enabled.
+
+Public canaries are off by default. When enabled, they send no repository contents and use only public no-spend Agoragentic surfaces.
+
+```bash
+npx agoragentic-premortem-golden-loop@latest run \
+  --repo . \
+  --allow-network-canaries
+```
+
+A successful local Golden Loop receipt is not a marketplace verification, settlement receipt, certification, or proof of every external outcome.
+
+## Plan-only premortem session
+
+Run a standalone six-month failure-frame session for a strategy, hire, launch, or product decision:
+
+```bash
+npx agoragentic-premortem-golden-loop@latest session \
+  --plan "Launch the product" \
+  --audience "Target users" \
+  --success "Observable success condition"
+```
+
+The session records:
+
+- raw failure reasons;
+- one investigator pass per reason;
+- most likely and most dangerous failures;
+- hidden assumptions;
+- a revised plan;
+- a pre-launch checklist;
+- the evidence and unknowns behind the synthesis.
+
+The method prompt is documented in [`PROMPT.md`](PROMPT.md).
+
+## Integrate it
+
+### MCP
+
+```bash
+npx --yes agoragentic-premortem-golden-loop@latest mcp
+```
+
+### Local/private HTTP agent
+
+```bash
+npx agoragentic-premortem-golden-loop@latest serve \
+  --repo . \
+  --host 127.0.0.1 \
+  --port 8787
+```
+
+The server binds to loopback by default. Non-loopback binding requires an explicit token. Remote safe fixes, network probes, and test execution require separate owner-controlled flags.
+
+### GitHub Actions, Docker, and IDE agents
+
+Use the maintained templates in [`templates/`](templates/) and the exact setup guides in:
+
+- [Integration recipes](docs/INTEGRATIONS.md)
+- [External HTTP agent](docs/EXTERNAL_AGENT.md)
+- [Release checklist](docs/RELEASE.md)
+
+Templates exist for GitHub Actions, Docker/home-server operation, systemd, Codex, Claude Code, Cursor, Cline, Windsurf, and other supported IDE-agent paths.
+
+## Sample evidence
+
+- [Audit summary](examples/sample-audit-summary.md)
+- [Closure loop](examples/sample-closure-loop.md)
+- [IDE repair prompt](examples/sample-ide-fix-prompt.md)
+- [Local receipt](examples/sample-local-receipt.json)
+
+Sanitized examples illustrate the output contract. They are not current audit results for your repository.
+
+## Safety boundary
+
+By default, the tool:
+
+- runs locally;
+- makes no network calls;
+- sends no repository contents, prompts, plans, reports, or receipts anywhere;
+- performs no paid execution;
+- makes no production mutation;
+- does not automatically apply source-code changes.
+
+Even with `--apply-safe-fixes`, it remains restricted to reviewed missing additive scaffolds. It never treats a model recommendation as owner authorization.
+
+## Development
+
+Requires Node.js 18 or newer.
+
+```bash
+git clone https://github.com/rhein1/agoragentic-premortem-golden-loop.git
+cd agoragentic-premortem-golden-loop
+npm install
+npm run check
+npm test
+npm run release:check
+```
+
+`release:check` runs syntax checks, local tests, a no-spend repository run, and an npm package dry run.
+
+## Where this fits
+
+- **Before launch:** Premortem Golden Loop finds release risks and prepares bounded repair guidance.
+- **During engineering:** [Fable-5](https://github.com/rhein1/fable5-codex) performs evidence-first audits, reviews, fact checks, and repo sweeps.
+- **For context:** [Micro ECF](https://github.com/rhein1/agoragentic-micro-ecf) and [ECF Core](https://github.com/rhein1/agoragentic-ecf-core) govern local source context.
+- **For actions and receipts:** [Harness Core](https://github.com/rhein1/agoragentic-integrations/tree/main/harness-core) governs tool/action lifecycles.
+- **For hosted operation:** [Triptych OS](https://agoragentic.com/agent-os/) runs governed deployed agents.
+- **For agent commerce:** [Marketplace](https://agoragentic.com/marketplace/) and [Interchange](https://agoragentic.com/interchange/) connect buyers, sellers, and markets.
+
+Use the [canonical ecosystem profile](https://github.com/rhein1/agoragentic-integrations/blob/main/ecosystem.json) for current portfolio metadata. This README intentionally does not duplicate mutable integration counts.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
