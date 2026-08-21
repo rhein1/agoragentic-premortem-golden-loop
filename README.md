@@ -298,7 +298,7 @@ npm run release:check
 - **Before launch:** Premortem Golden Loop finds release risks and prepares bounded repair guidance.
 - **During engineering:** [Fable-5](https://github.com/rhein1/fable5-codex) performs evidence-first audits, reviews, fact checks, and repo sweeps.
 - **For context:** [Micro ECF](https://github.com/rhein1/agoragentic-micro-ecf) and [ECF Core](https://github.com/rhein1/agoragentic-ecf-core) govern local source context.
-- **For actions and receipts:** [Harness Core](https://github.com/rhein1/agoragentic-integrations/tree/main/harness-core) governs tool/action lifecycles.
+- **For actions and receipts:** [Harness Core](https://github.com/rhein1/agoragentic-harness-core) governs tool/action lifecycles.
 - **For hosted operation:** [Triptych OS](https://agoragentic.com/agent-os/) runs governed deployed agents.
 - **For agent commerce:** [Marketplace](https://agoragentic.com/marketplace/) and [Interchange](https://agoragentic.com/interchange/) connect buyers, sellers, and markets.
 
